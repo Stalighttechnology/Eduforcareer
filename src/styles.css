@@ -6,7 +6,8 @@
 /* Global smooth scrolling */
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 80px; /* Adjust for fixed header */
+  scroll-padding-top: 88px; /* Adjust for fixed header */
+  scrollbar-gutter: stable;
 }
 
 /* Optimize scrolling performance */
@@ -15,8 +16,26 @@ html {
   box-sizing: border-box;
 }
 
+html, body {
+  overscroll-behavior-y: contain;
+}
+
 body {
   overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Performance optimizations for animations */

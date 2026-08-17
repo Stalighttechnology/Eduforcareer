@@ -94,6 +94,20 @@ export default function Footer() {
             </div>
           </div>
         </div>
+
+        <div className="mt-10 border-t border-white/10 pt-5">
+          <p className="text-center text-sm text-footer-foreground/80">
+            Designed &amp; Developed by{' '}
+            <a
+              href="https://www.stalight.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-white transition hover:text-primary underline-offset-4 hover:underline"
+            >
+              Stalight Technologies
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );
