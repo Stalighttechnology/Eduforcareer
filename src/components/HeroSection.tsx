@@ -11,7 +11,7 @@ const slides = [
     label: "LEARN. GROW. SUCCEED.",
     title: (
       <>
-        Trublend EduforCareer — <span className="text-blue-500">Building Skills.</span> <br className="hidden lg:block" /> Creating Careers.
+        Trublend EduforCareer  <span className="text-blue-500">Building Skills.</span> <br className="hidden lg:block" /> Creating Careers.
       </>
     ),
     copy:

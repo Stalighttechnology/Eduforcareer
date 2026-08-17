@@ -31,7 +31,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Trublend EduforCareer – Building Skills. Creating Careers." },
+      { title: "Trublend EduforCareer Building Skills. Creating Careers." },
       { name: "description", content: "Trublend EduforCareer is a leading training and career development institute in Bangalore." },
       { name: "author", content: "Trublend EduforCareer" },
       { property: "og:type", content: "website" },

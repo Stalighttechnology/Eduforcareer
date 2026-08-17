@@ -9,7 +9,7 @@ export const Route = createFileRoute("/about")({
     meta: [
       { title: "About Us – Trublend EduforCareer" },
       { name: "description", content: "Learn about Trublend EduforCareer, a leading training and career development institute based in Bangalore." },
-      { property: "og:title", content: "About Us – Trublend EduforCareer" },
+      { property: "og:title", content: "About Us  Trublend EduforCareer" },
       { property: "og:description", content: "Building skills, creating careers since day one." },
     ],
   }),
