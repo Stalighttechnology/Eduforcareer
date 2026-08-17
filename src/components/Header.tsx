@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
-import logo from "../assets/logo.jpeg";
+import logo from "../assets/trublendeduforcarrier.png";
 
 const programmes = [
   { name: "Job Guaranteed Courses", href: "/RecentCourses" },
@@ -17,7 +17,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-background shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8">
         <Link to="/" className="flex-shrink-0">
-          <img src={logo} alt="Trublend EduforCareer" className="h-12 w-auto" />
+          <img src={logo} alt="Trublend EduforCareer" className="h-14 w-auto max-w-[290px]" />
         </Link>
 
         {/* Desktop nav */}
