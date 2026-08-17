@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Facebook, Youtube, Linkedin, MapPin, Mail, Phone, ArrowRight, Instagram } from "lucide-react";
-import logo from "../assets/eduforcareer-logow.png";
+import logo from "../assets/TruBlend EduforCareer white without bg.png";
 
 const whatWeOffer = [
   { label: "About Us", to: "/about" },
@@ -25,11 +25,11 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <img src={logo} alt="Trublend EduforCareer" className="mb-5 h-14 w-auto max-w-[220px]" />
-            <p className="text-sm leading-relaxed opacity-80">
+            <img src={logo} alt="Trublend EduforCareer" className="mb-7 h-[78px] w-auto max-w-[290px] sm:h-[84px]" />
+            <p className="text-sm leading-relaxed text-white/80 sm:text-[15px]">
               Empowering learners with quality online courses and skill-building programs.
             </p>
-            <p className="mt-4 text-sm font-semibold opacity-90">
+            <p className="mt-4 text-sm font-semibold text-white/90 sm:text-[15px]">
               2025 © All Rights Reserved
             </p>
           </div>
@@ -67,28 +67,28 @@ export default function Footer() {
           {/* Connect */}
           <div>
             <h4 className="mb-5 font-heading text-lg font-semibold">Connect</h4>
-            <ul className="space-y-3 text-sm opacity-80">
-              <li className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                No. 130, 1st Block, Dr. Rajkumar Road Rajajinagar, Bengaluru-560010
+            <ul className="space-y-4 text-sm text-white/80 sm:text-[15px]">
+              <li className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                <span className="leading-relaxed">No. 130, 1st Block, Dr. Rajkumar Road Rajajinagar, Bengaluru-560010</span>
               </li>
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 flex-shrink-0 text-primary" />
-                <a href="mailto:info@eduforcareer.com" className="hover:opacity-100">info@eduforcareer.com</a>
+              <li className="flex items-center gap-3">
+                <Mail className="h-5 w-5 flex-shrink-0 text-primary" />
+                <a href="mailto:info@eduforcareer.com" className="font-medium hover:opacity-100">info@eduforcareer.com</a>
               </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 flex-shrink-0 text-primary" />
-                <a href="tel:+917760826949" className="hover:opacity-100">+91-77608 26949</a>
+              <li className="flex items-center gap-3">
+                <Phone className="h-5 w-5 flex-shrink-0 text-primary" />
+                <a href="tel:+917760826949" className="text-base font-semibold text-white hover:opacity-100">+91-77608 26949</a>
               </li>
             </ul>
-            <div className="mt-5 flex gap-2">
-              <a href="https://www.facebook.com/profile.php?id=61563178045998" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-80">
+            <div className="mt-6 flex gap-3">
+              <a href="https://www.facebook.com/profile.php?id=61563178045998" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition hover:scale-105 hover:opacity-90">
                 <Facebook className="h-4 w-4" />
               </a>
-              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-80">
+              <a href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition hover:scale-105 hover:opacity-90">
                 <Linkedin className="h-4 w-4" />
               </a>
-              <a href="https://www.instagram.com/trublendeduforcareer?igsh=MWc0YjJsbmMwYmg2" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-80">
+              <a href="https://www.instagram.com/trublendeduforcareer?igsh=MWc0YjJsbmMwYmg2" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition hover:scale-105 hover:opacity-90">
                 <Instagram className="h-4 w-4" />
               </a>
             </div>
