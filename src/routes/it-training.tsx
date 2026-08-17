@@ -19,13 +19,13 @@ import {
 export const Route = createFileRoute("/it-training")({
   head: () => ({
     meta: [
-      { title: "Premium IT Training – Python, Java, Cyber Security & AI | EduforCareer" },
+      { title: "Premium IT Training – Python, Java, Cyber Security & AI | Trublend EduforCareer" },
       {
         name: "description",
         content:
-          "Professional IT training in Python, Java, Cyber Security, and AI/Machine Learning with guaranteed job placement. Start your tech career with EduforCareer.",
+          "Professional IT training in Python, Java, Cyber Security, and AI/Machine Learning with guaranteed job placement. Start your tech career with Trublend EduforCareer.",
       },
-      { property: "og:title", content: "Premium IT Training – EduforCareer" },
+      { property: "og:title", content: "Premium IT Training – Trublend EduforCareer" },
       {
         property: "og:description",
         content: "Industry-focused IT training with 100% placement support.",
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/it-training")({
   component: ITTrainingPage,
 });
 
-// Mapped exactly to Eduforcareer Brand Colors
+// Mapped exactly to the Trublend EduforCareer Brand Colors
 const courses = [
   {
     id: "python",
@@ -229,7 +229,7 @@ function ITTrainingPage() {
           <div className="grid gap-12 lg:gap-16 lg:grid-cols-2 items-center">
             
             <div className="order-2 lg:order-1">
-              <span className="font-montserrat text-xs font-bold tracking-[0.2em] text-[#00758B] uppercase block mb-3">The EduforCareer Difference</span>
+              <span className="font-montserrat text-xs font-bold tracking-[0.2em] text-[#00758B] uppercase block mb-3">The Trublend EduforCareer Difference</span>
               <h2 className="font-montserrat text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-6">
                 Engineered For <br className="hidden md:block" /> Career Success.
               </h2>

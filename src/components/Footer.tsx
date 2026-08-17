@@ -25,7 +25,7 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <img src={logo} alt="EduforCareer" className="mb-5 h-14 w-auto" />
+            <img src={logo} alt="Trublend EduforCareer" className="mb-5 h-14 w-auto" />
             <p className="text-sm leading-relaxed opacity-80">
               Empowering learners with quality online courses and skill-building programs.
             </p>

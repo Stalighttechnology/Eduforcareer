@@ -18,13 +18,13 @@ import {
 export const Route = createFileRoute("/corporate-training")({
   head: () => ({
     meta: [
-      { title: "Corporate Training Programs – Workforce Development | EduforCareer" },
+      { title: "Corporate Training Programs – Workforce Development | Trublend EduforCareer" },
       {
         name: "description",
         content:
           "Customized corporate training solutions for workforce skill upgradation. Technology, soft skills, leadership, and onboarding programs tailored to your business needs.",
       },
-      { property: "og:title", content: "Corporate Training – EduforCareer" },
+      { property: "og:title", content: "Corporate Training – Trublend EduforCareer" },
       {
         property: "og:description",
         content: "Transform your workforce with industry-focused corporate training programs.",
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/corporate-training")({
   component: CorporateTrainingPage,
 });
 
-// Themed specifically to match the 4 colors of the provided Eduforcareer Logo
+// Themed specifically to match the 4 colors of the provided Trublend EduforCareer brand
 const trainingModules = [
   {
     icon: Zap,
@@ -297,7 +297,7 @@ function CorporateTrainingPage() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="font-montserrat text-xs font-bold tracking-[0.2em] text-[#00AEEF] uppercase block mb-2">The Advantage</span>
             <h2 className="font-montserrat text-3xl md:text-4xl font-extrabold text-slate-900">
-              Why Partner With EduforCareer?
+              Why Partner With Trublend EduforCareer?
             </h2>
           </div>
 

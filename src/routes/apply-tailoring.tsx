@@ -15,7 +15,7 @@ import shahiImg from "@/assets/shahi.png";
 export const Route = createFileRoute("/apply-tailoring")({
   head: () => ({
     meta: [
-      { title: "Apply Tailoring Program | EduforCareer" },
+      { title: "Apply Tailoring Program | Trublend EduforCareer" },
       {
         name: "description",
         content:

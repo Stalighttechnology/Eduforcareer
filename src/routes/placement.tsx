@@ -7,9 +7,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/placement")({
   head: () => ({
     meta: [
-      { title: "Careers – EduforCareer" },
-      { name: "description", content: "Careers at EduforCareer — internal roles and industry placement opportunities." },
-      { property: "og:title", content: "Careers – EduforCareer" },
+      { title: "Careers – Trublend EduforCareer" },
+      { name: "description", content: "Careers at Trublend EduforCareer — internal roles and industry placement opportunities." },
+      { property: "og:title", content: "Careers – Trublend EduforCareer" },
     ],
   }),
   component: PlacementPage,
@@ -24,7 +24,7 @@ function PlacementPage() {
       <section className="page-header-banner py-16 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 lg:px-8 text-center">
           <p className="section-label text-sm">CAREERS</p>
-          <h1 className="mt-2 font-heading text-4xl font-bold text-foreground md:text-5xl">Careers at EduforCareer</h1>
+          <h1 className="mt-2 font-heading text-4xl font-bold text-foreground md:text-5xl">Careers at Trublend EduforCareer</h1>
           <p className="mt-3 text-muted-foreground">Explore internal roles or get placed with our industry partners.</p>
         </div>
       </section>

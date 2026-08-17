@@ -36,7 +36,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/aviation")({
   head: () => ({
     meta: [
-      { title: "Airport Career Program | Premium Aviation Training | EduforCareer" },
+      { title: "Airport Career Program | Premium Aviation Training | Trublend EduforCareer" },
       {
         name: "description",
         content: "1 Month Premium Aviation Training with Guaranteed Airport Job Placement. Earn while you study your degree. Start earning in 90 days.",
@@ -311,7 +311,7 @@ function AviationPage() {
           <div className="text-center mb-16">
             <span className="font-montserrat text-xs font-bold tracking-[0.2em] text-orange-500 uppercase block mb-2">Program Value</span>
             <h2 className="font-montserrat text-3xl md:text-4xl font-extrabold text-slate-900">
-              Why Choose EduforCareer Aviation?
+              Why Choose Trublend EduforCareer Aviation?
             </h2>
           </div>
 

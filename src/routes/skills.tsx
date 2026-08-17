@@ -13,13 +13,13 @@ import govKarnatakaImg from "@/assets/government-of-karnataka.webp";
 export const Route = createFileRoute("/skills")({
   head: () => ({
     meta: [
-      { title: "DDU-GKY Skill Development Initiative | EduforCareer" },
+      { title: "DDU-GKY Skill Development Initiative | Trublend EduforCareer" },
       {
         name: "description",
         content:
           "Implementing the Deen Dayal Upadhyaya Grameen Kaushalya Yojana (DDU-GKY) in partnership with KSRLM for the Sampling Tailor job role.",
       },
-      { property: "og:title", content: "DDU-GKY Program – EduforCareer" },
+      { property: "og:title", content: "DDU-GKY Program – Trublend EduforCareer" },
       {
         property: "og:description",
         content: "Empowering rural youth through industry-aligned skill development and sustainable livelihood creation.",

@@ -7,9 +7,9 @@ import { Target, Users, BookOpen, Award, Eye, CheckCircle2 } from "lucide-react"
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About Us – EduforCareer" },
-      { name: "description", content: "Learn about EduforCareer, a leading training and career development institute based in Bangalore." },
-      { property: "og:title", content: "About Us – EduforCareer" },
+      { title: "About Us – Trublend EduforCareer" },
+      { name: "description", content: "Learn about Trublend EduforCareer, a leading training and career development institute based in Bangalore." },
+      { property: "og:title", content: "About Us – Trublend EduforCareer" },
       { property: "og:description", content: "Building skills, creating careers since day one." },
     ],
   }),
@@ -38,12 +38,12 @@ function AboutPage() {
       <section className="py-16 lg:py-24">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-12 px-4 lg:flex-row lg:px-8">
           <div className="flex-1">
-            <img src={aboutImg} alt="About EduforCareer" className="rounded-xl shadow-lg" loading="lazy" width={800} height={600} />
+            <img src={aboutImg} alt="About Trublend EduforCareer" className="rounded-xl shadow-lg" loading="lazy" width={800} height={600} />
           </div>
           <div className="flex-1">
-            <h2 className="font-heading text-3xl font-bold text-foreground">EduforCareer</h2>
+            <h2 className="font-heading text-3xl font-bold text-foreground">Trublend EduforCareer</h2>
             <p className="mt-4 leading-relaxed text-muted-foreground">
-              At EduforCareer, we believe meaningful careers are built with the right guidance and practical learning. Our programs are designed by industry experts and delivered through real-time projects, hands-on labs, and personalized mentoring.
+              At Trublend EduforCareer, we believe meaningful careers are built with the right guidance and practical learning. Our programs are designed by industry experts and delivered through real-time projects, hands-on labs, and personalized mentoring.
             </p>
             <p className="mt-4 leading-relaxed text-muted-foreground">
               Based in Bangalore, we work closely with students, professionals, and organizations to create impactful training experiences that produce job-ready talent.

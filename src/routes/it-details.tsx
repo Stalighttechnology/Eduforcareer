@@ -12,7 +12,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/it-details")({
   head: () => ({
     meta: [
-      { title: "IT Training Deep Dive | Python & Java | EduforCareer" },
+      { title: "IT Training Deep Dive | Python & Java | Trublend EduforCareer" },
       {
         name: "description",
         content: "Explore our professional IT training modules. Detailed curriculum for Python Full Stack and Java Enterprise development.",
@@ -435,7 +435,7 @@ function ITDetailsPage() {
           <h2 className="font-montserrat text-2xl md:text-4xl lg:text-5xl font-black text-white mb-10 md:mb-16">Program Advantages</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 text-left">
             {[
-              { icon: Award, title: "Official Certification", desc: "Get certified by EduforCareer with global industry recognition." },
+              { icon: Award, title: "Official Certification", desc: "Get certified by Trublend EduforCareer with global industry recognition." },
               { icon: Briefcase, title: "Job Assistance", desc: "100% placement support with resume building and mock interviews." },
               { icon: Terminal, title: "Project Based", desc: "Build a portfolio of real-world enterprise applications." }
             ].map((adv, idx) => (
