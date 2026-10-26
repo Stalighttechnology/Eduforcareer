@@ -3,6 +3,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --font-montserrat: "Montserrat", sans-serif;
+}
+
+.font-montserrat {
+  font-family: "Montserrat", sans-serif;
+}
+
 /* Global smooth scrolling & performance optimizations */
 html {
   scroll-padding-top: 88px; /* Adjust for fixed header */

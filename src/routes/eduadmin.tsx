@@ -38,6 +38,7 @@ import {
   RotateCcw,
   Paperclip
 } from "lucide-react";
+import brandLogo from "@/assets/trublendeduforcarrier.png";
 import { supabase } from "@/lib/supabase";
 import {
   JobOpening,
@@ -453,37 +454,43 @@ export default function EduAdminPage() {
     };
   }, [jobs, applications]);
 
-  // 1. AUTHENTICATION LOCK SCREEN (If not logged in)
+  // 1. AUTHENTICATION LOCK SCREEN (Matching Website UI, Clean & Secure)
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0A0F1D] flex items-center justify-center p-4">
-        {/* Ambient background glow */}
+      <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#FFF7ED] flex items-center justify-center p-4 sm:p-6">
+        {/* Ambient background glow orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-blue-600/10 blur-[120px] rounded-full"></div>
-          <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[450px] h-[300px] bg-orange-500/10 blur-[100px] rounded-full"></div>
+          <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] bg-blue-500/10 blur-[120px] rounded-full"></div>
+          <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 w-[450px] h-[300px] bg-orange-500/10 blur-[100px] rounded-full"></div>
         </div>
 
-        <div className="relative w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-8 shadow-2xl">
-          {/* Header & Logo */}
+        <div className="relative w-full max-w-md rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xl shadow-slate-200/50">
+          {/* Header & Brand Logo */}
           <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20 mb-4">
-              <ShieldCheck className="h-7 w-7" />
+            <Link to="/" className="inline-block mb-4">
+              <img
+                src={brandLogo}
+                alt="TruBlend EduforCareer"
+                className="h-10 sm:h-12 object-contain mx-auto"
+              />
+            </Link>
+
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/20 bg-orange-50 px-3 py-1 text-[11px] font-bold text-orange-700 mb-2.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-orange-600" /> Authorized Administrator Portal
             </div>
 
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-0.5 text-[11px] font-semibold text-blue-400 mb-2">
-              <Lock className="h-3 w-3" /> 256-Bit SSL Encrypted Admin Portal
-            </div>
-
-            <h2 className="text-2xl font-bold tracking-tight text-white">EduAdmin Security Gateway</h2>
-            <p className="mt-1 text-xs text-slate-400">
+            <h2 className="font-montserrat font-extrabold text-2xl tracking-tight text-slate-900">
+              EduAdmin Security Gateway
+            </h2>
+            <p className="mt-1.5 text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
               Sign in with your authorized Administrator Email ID and Password to manage company drives and candidate applications.
             </p>
           </div>
 
           {/* Error Banner */}
           {loginError && (
-            <div className="mt-5 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300 flex items-start gap-2.5">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-400" />
+            <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 flex items-start gap-2.5 shadow-2xs">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
               <span>{loginError}</span>
             </div>
           )}
@@ -491,11 +498,11 @@ export default function EduAdminPage() {
           {/* Form */}
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Administrator Email ID <span className="text-orange-400">*</span>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Administrator Email ID <span className="text-orange-500">*</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="email"
                   required
@@ -505,7 +512,7 @@ export default function EduAdminPage() {
                     setLoginEmail(e.target.value);
                     setLoginError("");
                   }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950/80 pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all font-medium"
                   autoFocus
                 />
               </div>
@@ -513,12 +520,12 @@ export default function EduAdminPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Password <span className="text-orange-400">*</span>
+                <label className="block text-xs font-bold text-slate-700">
+                  Password <span className="text-orange-500">*</span>
                 </label>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
@@ -528,12 +535,12 @@ export default function EduAdminPage() {
                     setLoginPassword(e.target.value);
                     setLoginError("");
                   }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950/80 pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -543,25 +550,25 @@ export default function EduAdminPage() {
 
             {/* Remember Me */}
             <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400 select-none">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-950 text-orange-500 focus:ring-orange-500"
+                  className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                 />
                 Remember me on this browser
               </label>
 
-              <span className="text-[11px] text-slate-500">
-                Authorized Personnel
+              <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3 text-emerald-500" /> SSL Protected
               </span>
             </div>
 
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full rounded-lg bg-gradient-to-r from-[#FF6B00] to-[#EA580C] hover:from-[#EA580C] hover:to-[#C2410C] px-4 py-2.5 text-sm font-bold text-white transition-all shadow-lg shadow-orange-500/25 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="font-montserrat font-bold w-full rounded-xl bg-gradient-to-r from-[#FF6B00] via-[#FF7A1A] to-[#EA580C] hover:from-[#EA580C] hover:to-[#C2410C] px-5 py-3 text-sm text-white shadow-md shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoggingIn ? (
                 <>
@@ -575,11 +582,11 @@ export default function EduAdminPage() {
             </button>
           </form>
 
-          <div className="mt-8 pt-5 border-t border-slate-800 text-xs text-slate-500 flex items-center justify-between">
-            <Link to="/placement" className="hover:text-slate-300 transition-colors flex items-center gap-1">
+          <div className="mt-8 pt-5 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+            <Link to="/placement" className="hover:text-slate-900 font-semibold transition-colors flex items-center gap-1">
               ← Return to Careers Portal
             </Link>
-            <span>Trublend EduforCareer</span>
+            <span className="font-semibold text-slate-400">Trublend EduforCareer</span>
           </div>
         </div>
       </div>
