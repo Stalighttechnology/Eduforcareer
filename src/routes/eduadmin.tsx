@@ -45,6 +45,9 @@ import {
   StoredJobApplication,
   getApplications,
   updateApplicationStatus,
+  deleteApplication,
+  bulkDeleteApplications,
+  bulkUpdateApplicationStatus,
   getJobs,
   toggleJobStatus,
   updateJobOpening,
@@ -138,16 +141,53 @@ export default function EduAdminPage() {
   const [driveSearch, setDriveSearch] = useState("");
   const [driveStatusFilter, setDriveStatusFilter] = useState<"ALL" | "Active" | "Paused">("ALL");
 
-  // State for Editing a Drive
+  // State for Editing & Adding Drives
   const [editingJob, setEditingJob] = useState<JobOpening | null>(null);
   const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
+
+  const initialNewJobData: Omit<JobOpening, "id"> = {
+    sNo: 0,
+    company: "",
+    roleTitle: "",
+    sector: "Electronics & Smartphone Mfg",
+    qualification: "SSLC, PUC, ITI, Diploma, Graduate",
+    trade: "Any Trade",
+    category: "Contractual Staffing",
+    gender: "Male & Female",
+    age: "18-30",
+    salary: "",
+    salaryHighlight: "",
+    takeHomeHighlight: "",
+    accommodation: "Free",
+    food: "Free",
+    transport: "Free",
+    location: "Bangalore, Karnataka",
+    state: "Karnataka",
+    openings: 50,
+    featured: false,
+    status: "Active",
+    logoUrl: undefined,
+  };
+  const [newJobData, setNewJobData] = useState<Omit<JobOpening, "id">>(initialNewJobData);
 
   // State for Candidate Applications
   const [selectedJobId, setSelectedJobId] = useState<string>("ALL");
   const [applications, setApplications] = useState<StoredJobApplication[]>([]);
+  const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
   const [loadingApps, setLoadingApps] = useState<boolean>(true);
   const [appSearch, setAppSearch] = useState<string>("");
   const [appStatusFilter, setAppStatusFilter] = useState<string>("ALL");
+
+  // Permission & Confirmation Dialog Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "danger" | "warning";
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
 
   // Load applications
   const loadApplications = async () => {
@@ -339,6 +379,60 @@ export default function EduAdminPage() {
     toast.success(`Job details for ${editingJob.company} updated successfully!`);
   };
 
+  // Add New Job Opening
+  const handleCreateJob = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newJobData.company.trim()) {
+      toast.error("Please enter a company name");
+      return;
+    }
+    const created = addJobOpening({
+      ...newJobData,
+      company: newJobData.company.trim(),
+      roleTitle: newJobData.roleTitle?.trim() || "Operations Trainee",
+      location: newJobData.location.trim() || "Bangalore, Karnataka",
+      salary: newJobData.salary?.trim() || newJobData.salaryHighlight || "As per company policy",
+    });
+    refreshJobs();
+    setIsAddJobModalOpen(false);
+    setNewJobData(initialNewJobData);
+    toast.success(`Recruitment drive for "${created.company}" successfully created and published!`);
+  };
+
+  // Delete Job Opening with Permission Confirmation
+  const handleDeleteJob = (job: JobOpening) => {
+    setConfirmModal({
+      title: "⚠️ Permission Required: Delete Recruitment Drive",
+      message: `Are you sure you want to permanently delete the recruitment drive for "${job.company}" (${job.roleTitle || job.trade})? This will immediately remove it from both EduAdmin and the public Careers applicant portal.`,
+      confirmText: "Yes, Delete Drive",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: () => {
+        deleteJobOpening(job.id);
+        refreshJobs();
+        toast.success(`Recruitment drive for "${job.company}" deleted successfully.`);
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  // Reset All Jobs to Defaults with Permission Confirmation
+  const handleResetDefaults = () => {
+    setConfirmModal({
+      title: "⚠️ Permission Required: Reset All Drives to Defaults",
+      message: "Are you sure you want to restore all 18 standard company recruitment drives back to their factory default state? Any custom added drives, pauses, or edits will be reset.",
+      confirmText: "Yes, Reset All Drives",
+      cancelText: "Cancel",
+      variant: "warning",
+      onConfirm: () => {
+        const res = resetJobsToDefault();
+        setJobs(res);
+        toast.success("All drives reset to original defaults.");
+        setConfirmModal(null);
+      },
+    });
+  };
+
   // Handle Application Status Change
   const handleStatusChange = async (appId: string, newStatus: StoredJobApplication["status"]) => {
     try {
@@ -350,6 +444,79 @@ export default function EduAdminPage() {
     } catch {
       toast.error("Could not update status");
     }
+  };
+
+  // Delete Single Candidate Application with Permission Confirmation
+  const handleDeleteApplication = (app: StoredJobApplication) => {
+    setConfirmModal({
+      title: "⚠️ Permission Required: Delete Candidate Application",
+      message: `Are you sure you want to permanently delete candidate application #${app.id.slice(0, 8)} submitted by "${app.name}" for "${app.job_company}"? This action cannot be undone.`,
+      confirmText: "Yes, Delete Application",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        setIsConfirming(true);
+        try {
+          await deleteApplication(app.id);
+          setApplications((prev) => prev.filter((a) => a.id !== app.id));
+          setSelectedAppIds((prev) => prev.filter((id) => id !== app.id));
+          toast.success(`Application for "${app.name}" deleted successfully.`);
+        } catch {
+          toast.error("Failed to delete application.");
+        } finally {
+          setIsConfirming(false);
+          setConfirmModal(null);
+        }
+      },
+    });
+  };
+
+  // Bulk Status Update
+  const handleBulkStatusChange = async (newStatus: StoredJobApplication["status"]) => {
+    if (selectedAppIds.length === 0) return;
+    try {
+      await bulkUpdateApplicationStatus(selectedAppIds, newStatus);
+      setApplications((prev) =>
+        prev.map((a) => (selectedAppIds.includes(a.id) ? { ...a, status: newStatus } : a))
+      );
+      toast.success(`Updated status of ${selectedAppIds.length} candidate(s) to "${newStatus}".`);
+      setSelectedAppIds([]);
+    } catch {
+      toast.error("Failed to update status for selected applications.");
+    }
+  };
+
+  // Bulk Delete Applications with Permission Confirmation
+  const handleBulkDeleteApplications = () => {
+    if (selectedAppIds.length === 0) return;
+    setConfirmModal({
+      title: "⚠️ Permission Required: Bulk Delete Candidate Applications",
+      message: `Are you sure you want to permanently delete all ${selectedAppIds.length} selected candidate application(s)? This will permanently remove their records and uploaded documents.`,
+      confirmText: `Yes, Delete ${selectedAppIds.length} Applications`,
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        setIsConfirming(true);
+        try {
+          await bulkDeleteApplications(selectedAppIds);
+          setApplications((prev) => prev.filter((a) => !selectedAppIds.includes(a.id)));
+          toast.success(`Successfully deleted ${selectedAppIds.length} candidate applications.`);
+          setSelectedAppIds([]);
+        } catch {
+          toast.error("Failed to delete selected applications.");
+        } finally {
+          setIsConfirming(false);
+          setConfirmModal(null);
+        }
+      },
+    });
+  };
+
+  // Toggle Single Application Selection
+  const toggleSelectApp = (id: string) => {
+    setSelectedAppIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
   // Export Applications to CSV
@@ -450,6 +617,27 @@ export default function EduAdminPage() {
       return matchesSearch && matchesStatus;
     });
   }, [applications, appSearch, appStatusFilter]);
+
+  // Master Checkbox State
+  const allFilteredSelected = useMemo(() => {
+    return (
+      filteredApplications.length > 0 &&
+      filteredApplications.every((app) => selectedAppIds.includes(app.id))
+    );
+  }, [filteredApplications, selectedAppIds]);
+
+  // Toggle Select/Deselect All Filtered Applications
+  const toggleSelectAllFiltered = () => {
+    if (allFilteredSelected) {
+      const filteredIds = new Set(filteredApplications.map((a) => a.id));
+      setSelectedAppIds((prev) => prev.filter((id) => !filteredIds.has(id)));
+    } else {
+      const newIds = Array.from(
+        new Set([...selectedAppIds, ...filteredApplications.map((a) => a.id)])
+      );
+      setSelectedAppIds(newIds);
+    }
+  };
 
   // Stats Counters
   const stats = useMemo(() => {
@@ -648,31 +836,9 @@ export default function EduAdminPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-            {/* Active Admin Profile Pill */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700/80 text-xs">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-slate-400">Admin:</span>
-              <span className="font-semibold text-slate-200">{adminEmail}</span>
-            </div>
-
-            {/* Change Password / Security */}
-            <button
-              onClick={() => {
-                setNewEmailInput(adminEmail);
-                setCurrentPasswordInput("");
-                setNewPasswordInput("");
-                setConfirmPasswordInput("");
-                setIsSecurityModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
-              title="Manage Account Email & Change Password"
-            >
-              <KeyRound className="h-3.5 w-3.5 text-orange-400" /> Security
-            </button>
-
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition-colors cursor-pointer"
             >
               <Lock className="h-3.5 w-3.5" /> Logout
             </button>
@@ -773,17 +939,19 @@ export default function EduAdminPage() {
                 </div>
               </div>
 
-              {/* Reset to Factory Default */}
+              {/* Action Buttons: Add Company Drive & Reset Defaults */}
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    if (confirm("Reset all 18 company drives to original factory state?")) {
-                      const res = resetJobsToDefault();
-                      setJobs(res);
-                      toast.success("Jobs reset to default");
-                    }
-                  }}
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  onClick={() => setIsAddJobModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#FF6B00] hover:bg-[#EA580C] px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-2xs cursor-pointer"
+                  title="Add a new recruitment drive with company logo and specifications"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Company Drive
+                </button>
+
+                <button
+                  onClick={handleResetDefaults}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
                   title="Reset any edits or pauses back to initial state"
                 >
                   <RotateCcw className="h-3 w-3" /> Reset Defaults
@@ -916,10 +1084,19 @@ export default function EduAdminPage() {
                               {/* Edit Modal Button */}
                               <button
                                 onClick={() => setEditingJob(job)}
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                                 title="Edit full details"
                               >
                                 <Edit className="h-3 w-3 text-slate-500" /> Edit
+                              </button>
+
+                              {/* Delete Drive Button */}
+                              <button
+                                onClick={() => handleDeleteJob(job)}
+                                className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+                                title="Permanently delete this recruitment drive"
+                              >
+                                <Trash2 className="h-3 w-3 text-rose-600" /> Delete
                               </button>
                             </div>
                           </td>
@@ -1002,6 +1179,64 @@ export default function EduAdminPage() {
               </div>
             </div>
 
+            {/* Bulk Action Toolbar */}
+            {selectedAppIds.length > 0 && (
+              <div className="rounded-lg border border-orange-200 bg-orange-50/90 p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center h-6 px-2.5 rounded-full bg-orange-600 text-white font-bold text-xs">
+                    {selectedAppIds.length}
+                  </span>
+                  <span className="text-xs font-bold text-slate-800">
+                    Candidate Application{selectedAppIds.length > 1 ? "s" : ""} Selected
+                  </span>
+                  <button
+                    onClick={() => setSelectedAppIds([])}
+                    className="text-xs text-slate-500 hover:text-slate-800 underline ml-2 cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-600">Mark Selected As:</span>
+                  <button
+                    onClick={() => handleBulkStatusChange("Shortlisted")}
+                    className="rounded bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+                  >
+                    Shortlisted
+                  </button>
+                  <button
+                    onClick={() => handleBulkStatusChange("Contacted")}
+                    className="rounded bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+                  >
+                    Contacted
+                  </button>
+                  <button
+                    onClick={() => handleBulkStatusChange("Pending")}
+                    className="rounded bg-slate-600 hover:bg-slate-700 text-white px-2.5 py-1 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+                  >
+                    Pending
+                  </button>
+                  <button
+                    onClick={() => handleBulkStatusChange("Rejected")}
+                    className="rounded bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+                  >
+                    Rejected
+                  </button>
+
+                  <div className="h-4 w-px bg-orange-200 mx-1" />
+
+                  <button
+                    onClick={handleBulkDeleteApplications}
+                    className="rounded border border-rose-300 bg-rose-100 hover:bg-rose-200 text-rose-800 px-3 py-1 text-xs font-bold transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-rose-600" />
+                    Delete Selected ({selectedAppIds.length})
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Applications List */}
             {filteredApplications.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs">
@@ -1017,6 +1252,15 @@ export default function EduAdminPage() {
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
                       <tr>
+                        <th className="px-3 py-3 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={allFilteredSelected}
+                            onChange={toggleSelectAllFiltered}
+                            className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer h-4 w-4"
+                            title={allFilteredSelected ? "Deselect All Filtered" : "Select All Filtered"}
+                          />
+                        </th>
                         <th className="px-4 py-3">Applied Company</th>
                         <th className="px-4 py-3">Candidate Details</th>
                         <th className="px-3 py-3">Contact</th>
@@ -1028,7 +1272,21 @@ export default function EduAdminPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
                       {filteredApplications.map((app) => (
-                        <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
+                        <tr
+                          key={app.id}
+                          className={`hover:bg-slate-50/80 transition-colors ${
+                            selectedAppIds.includes(app.id) ? "bg-orange-50/40" : ""
+                          }`}
+                        >
+                          {/* Row Checkbox */}
+                          <td className="px-3 py-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedAppIds.includes(app.id)}
+                              onChange={() => toggleSelectApp(app.id)}
+                              className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer h-4 w-4"
+                            />
+                          </td>
                           {/* Company & Preferred Location */}
                           <td className="px-4 py-3">
                             <div className="font-bold text-slate-900">{app.job_company}</div>
@@ -1137,29 +1395,43 @@ export default function EduAdminPage() {
                             </span>
                           </td>
 
-                          {/* Quick Status Action Buttons */}
+                          {/* Quick Status Action Buttons & Delete */}
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleStatusChange(app.id, "Shortlisted")}
-                                className="rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 text-[11px] font-bold"
+                                className="rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Shortlist candidate"
                               >
                                 Shortlist
                               </button>
                               <button
                                 onClick={() => handleStatusChange(app.id, "Contacted")}
-                                className="rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 text-[11px] font-bold"
+                                className="rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Mark as Contacted"
                               >
                                 Contact
                               </button>
                               <button
                                 onClick={() => handleStatusChange(app.id, "Rejected")}
-                                className="rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 text-[11px] font-bold"
+                                className="rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Reject candidate"
                               >
                                 Reject
+                              </button>
+                              <button
+                                onClick={() => handleStatusChange(app.id, "Pending")}
+                                className="rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
+                                title="Reset status to Pending"
+                              >
+                                Reset
+                              </button>
+                              <button
+                                onClick={() => handleDeleteApplication(app)}
+                                className="rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 p-1 text-[11px] font-bold transition-colors ml-1 cursor-pointer"
+                                title="Permanently delete application"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-rose-600" />
                               </button>
                             </div>
                           </td>
@@ -1535,6 +1807,414 @@ export default function EduAdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. ADD NEW RECRUITMENT DRIVE MODAL */}
+      {isAddJobModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs overflow-y-auto"
+          data-lenis-prevent
+        >
+          <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl p-6 border border-slate-200 my-8 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 border border-orange-500/20">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Add New Recruitment Drive
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Publish an active hiring drive to EduAdmin and the public careers portal
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddJobModalOpen(false)}
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateJob} className="mt-4 space-y-3.5 text-xs">
+              {/* Company Logo Upload (< 2MB) */}
+              <div className="rounded-xl border border-dashed border-slate-300 p-3 bg-slate-50/70">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-orange-500" />
+                    Company Logo (Max 2MB)
+                  </label>
+                  {newJobData.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setNewJobData({ ...newJobData, logoUrl: undefined })}
+                      className="text-[11px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      Remove Logo
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-12 rounded-lg border border-slate-200 bg-white p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                    {newJobData.logoUrl ? (
+                      <img
+                        src={newJobData.logoUrl}
+                        alt="Uploaded preview"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <span className="font-mono text-xs font-bold text-slate-400">
+                        {newJobData.company ? newJobData.company.slice(0, 2).toUpperCase() : "LOGO"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 2 * 1024 * 1024) {
+                            toast.error("Logo file size must be less than 2MB.");
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const dataUrl = ev.target?.result as string;
+                            if (dataUrl) {
+                              setNewJobData({ ...newJobData, logoUrl: dataUrl });
+                              toast.success("Company logo attached (< 2MB).");
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-white hover:file:bg-slate-700 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Supports PNG, JPG, WebP, or SVG. File size strictly limited to less than 2MB.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Company Name & Role Title */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Company Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Foxconn / Tata Electronics"
+                    value={newJobData.company}
+                    onChange={(e) => setNewJobData({ ...newJobData, company: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Role Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Production Specialist"
+                    value={newJobData.roleTitle}
+                    onChange={(e) => setNewJobData({ ...newJobData, roleTitle: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Sector & Scheme */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Sector / Industry</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Electronics & Smartphone Mfg"
+                    value={newJobData.sector}
+                    onChange={(e) => setNewJobData({ ...newJobData, sector: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Scheme / Hiring Mode</label>
+                  <select
+                    value={newJobData.category}
+                    onChange={(e) => setNewJobData({ ...newJobData, category: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none bg-white cursor-pointer"
+                  >
+                    <option value="Contractual Staffing">Contractual Staffing</option>
+                    <option value="NAPS">NAPS (National Apprenticeship Promotion Scheme)</option>
+                    <option value="NATS">NATS (National Apprenticeship Training Scheme)</option>
+                    <option value="Direct Payroll">Direct Company Payroll</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Openings, Location, & State */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Vacancies / Seats <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={newJobData.openings}
+                    onChange={(e) => setNewJobData({ ...newJobData, openings: parseInt(e.target.value) || 0 })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    City / Facility Location <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Devanahalli, Bangalore"
+                    value={newJobData.location}
+                    onChange={(e) => setNewJobData({ ...newJobData, location: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">State</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Karnataka"
+                    value={newJobData.state}
+                    onChange={(e) => setNewJobData({ ...newJobData, state: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Salary Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Salary Highlight (Card Display)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹18,258 CTC"
+                    value={newJobData.salaryHighlight || ""}
+                    onChange={(e) => setNewJobData({ ...newJobData, salaryHighlight: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">In-Hand Tag (Green Badge)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹15,700 In-Hand + Bonus"
+                    value={newJobData.takeHomeHighlight || ""}
+                    onChange={(e) => setNewJobData({ ...newJobData, takeHomeHighlight: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Detailed Salary */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Detailed Salary / Stipend Notes</label>
+                <input
+                  type="text"
+                  placeholder="e.g. ₹18,258 CTC / Month + Free Food & Attendance Bonus"
+                  value={newJobData.salary}
+                  onChange={(e) => setNewJobData({ ...newJobData, salary: e.target.value })}
+                  className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Eligibility & Trades */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Eligibility Criteria</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SSLC, PUC, ITI, Diploma, Graduate"
+                    value={newJobData.qualification}
+                    onChange={(e) => setNewJobData({ ...newJobData, qualification: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Trades / Specializations</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Any Trade / CNC Machinist"
+                    value={newJobData.trade}
+                    onChange={(e) => setNewJobData({ ...newJobData, trade: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Gender & Age */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Gender Eligibility</label>
+                  <select
+                    value={newJobData.gender}
+                    onChange={(e) => setNewJobData({ ...newJobData, gender: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none bg-white cursor-pointer"
+                  >
+                    <option value="Male & Female">Male & Female</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Age Range</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 18-30 yrs"
+                    value={newJobData.age}
+                    onChange={(e) => setNewJobData({ ...newJobData, age: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Perks (Meals, Stay, Transport) */}
+              <div className="grid grid-cols-3 gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Meals / Food</label>
+                  <select
+                    value={newJobData.food}
+                    onChange={(e) => setNewJobData({ ...newJobData, food: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-1.5 text-xs bg-white cursor-pointer"
+                  >
+                    <option value="Free">Free Meals</option>
+                    <option value="Subsidized">Subsidized</option>
+                    <option value="No">Not Provided</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Stay / Hostel</label>
+                  <select
+                    value={newJobData.accommodation}
+                    onChange={(e) => setNewJobData({ ...newJobData, accommodation: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-1.5 text-xs bg-white cursor-pointer"
+                  >
+                    <option value="Free">Free Stay</option>
+                    <option value="Subsidized">Subsidized</option>
+                    <option value="No">Not Provided</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Transport</label>
+                  <select
+                    value={newJobData.transport}
+                    onChange={(e) => setNewJobData({ ...newJobData, transport: e.target.value })}
+                    className="w-full rounded border border-slate-200 p-1.5 text-xs bg-white cursor-pointer"
+                  >
+                    <option value="Free">Free Transport</option>
+                    <option value="Subsidized">Subsidized</option>
+                    <option value="No">Not Provided</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAddJobModalOpen(false)}
+                  className="rounded border border-slate-200 px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded bg-[#FF6B00] hover:bg-[#EA580C] px-4 py-1.5 text-xs font-bold text-white shadow-2xs transition-colors cursor-pointer"
+                >
+                  Publish Recruitment Drive
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 7. STRICT PERMISSION & CONFIRMATION DIALOG MODAL (FOR ALL DELETIONS) */}
+      {confirmModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs overflow-y-auto"
+          data-lenis-prevent
+        >
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl my-6 border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Top Accent Strip */}
+            <div
+              className={`h-2 w-full ${
+                confirmModal.variant === "warning" ? "bg-amber-500" : "bg-rose-600"
+              }`}
+            />
+
+            <div className="p-6">
+              <div className="flex items-start gap-3.5">
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                    confirmModal.variant === "warning"
+                      ? "bg-amber-100 text-amber-700 border border-amber-200"
+                      : "bg-rose-100 text-rose-700 border border-rose-200"
+                  }`}
+                >
+                  {confirmModal.variant === "warning" ? (
+                    <AlertCircle className="h-6 w-6" />
+                  ) : (
+                    <Trash2 className="h-6 w-6" />
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-slate-900 leading-snug">
+                    {confirmModal.title}
+                  </h3>
+                  <p className="mt-2 text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                    {confirmModal.message}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  disabled={isConfirming}
+                  onClick={() => setConfirmModal(null)}
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {confirmModal.cancelText || "Cancel"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isConfirming}
+                  onClick={async () => {
+                    await confirmModal.onConfirm();
+                  }}
+                  className={`rounded-lg px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                    confirmModal.variant === "warning"
+                      ? "bg-amber-600 hover:bg-amber-700"
+                      : "bg-rose-600 hover:bg-rose-700"
+                  }`}
+                >
+                  {isConfirming && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  {confirmModal.confirmText || "Confirm"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

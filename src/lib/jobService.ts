@@ -623,6 +623,68 @@ export async function updateApplicationStatus(id: string, newStatus: StoredJobAp
   return true;
 }
 
+/**
+ * Delete a candidate application by ID
+ */
+export async function deleteApplication(id: string): Promise<boolean> {
+  try {
+    await supabase.from("job_applications").delete().eq("id", id);
+  } catch (err) {
+    console.warn("Failed to delete application on Supabase, removing locally:", err);
+  }
+
+  try {
+    const localApps: StoredJobApplication[] = JSON.parse(localStorage.getItem("local_job_applications") || "[]");
+    const updated = localApps.filter(a => a.id !== id);
+    localStorage.setItem("local_job_applications", JSON.stringify(updated));
+  } catch (e) {
+    console.error(e);
+  }
+  return true;
+}
+
+/**
+ * Bulk delete candidate applications
+ */
+export async function bulkDeleteApplications(ids: string[]): Promise<boolean> {
+  try {
+    await supabase.from("job_applications").delete().in("id", ids);
+  } catch (err) {
+    console.warn("Failed bulk delete on Supabase:", err);
+  }
+
+  try {
+    const localApps: StoredJobApplication[] = JSON.parse(localStorage.getItem("local_job_applications") || "[]");
+    const idSet = new Set(ids);
+    const updated = localApps.filter(a => !idSet.has(a.id));
+    localStorage.setItem("local_job_applications", JSON.stringify(updated));
+  } catch (e) {
+    console.error(e);
+  }
+  return true;
+}
+
+/**
+ * Bulk update candidate application statuses
+ */
+export async function bulkUpdateApplicationStatus(ids: string[], newStatus: StoredJobApplication["status"]): Promise<boolean> {
+  try {
+    await supabase.from("job_applications").update({ status: newStatus }).in("id", ids);
+  } catch (err) {
+    console.warn("Failed bulk status update on Supabase:", err);
+  }
+
+  try {
+    const localApps: StoredJobApplication[] = JSON.parse(localStorage.getItem("local_job_applications") || "[]");
+    const idSet = new Set(ids);
+    const updated = localApps.map(a => idSet.has(a.id) ? { ...a, status: newStatus } : a);
+    localStorage.setItem("local_job_applications", JSON.stringify(updated));
+  } catch (e) {
+    console.error(e);
+  }
+  return true;
+}
+
 const JOBS_STORAGE_KEY = "trublend_managed_jobs_v1";
 
 /**
