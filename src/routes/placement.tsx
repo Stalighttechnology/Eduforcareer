@@ -754,19 +754,20 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "resume" | "markscard" | "additional") => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 15 * 1024 * 1024) {
-        toast.error("File size exceeds 15MB limit. Please upload a smaller file.");
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(`"${file.name}" exceeds 2MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a document under 2MB.`);
+        e.target.value = "";
         return;
       }
       if (type === "resume") {
         setResumeFile(file);
-        toast.success(`Resume "${file.name}" attached.`);
+        toast.success(`Resume "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
       } else if (type === "markscard") {
         setMarksCardFile(file);
-        toast.success(`Marks Card "${file.name}" attached.`);
+        toast.success(`Marks Card "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
       } else {
         setAdditionalDocFile(file);
-        toast.success(`Additional document "${file.name}" attached.`);
+        toast.success(`Additional document "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
       }
     }
   };
@@ -850,29 +851,31 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
         </div>
 
         {submittedSuccess ? (
-          <div className="p-8 text-center space-y-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <div className="p-8 sm:p-10 text-center space-y-4">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-xs">
               <Check className="h-8 w-8 stroke-[3]" />
             </div>
-            <h3 className="text-2xl font-bold text-slate-900">Application Recorded!</h3>
+
+            <div className="space-y-1">
+              <span className="font-montserrat font-bold inline-block text-xs uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/80 mb-1">
+                Application Received Successfully
+              </span>
+              <h3 className="font-montserrat font-extrabold text-2xl sm:text-3xl tracking-tight text-slate-900">
+                Thank You!
+              </h3>
+            </div>
+
             <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-              Your details and documents for <span className="font-semibold text-slate-800">{job.company}</span> have been saved. Our team will verify your documents and contact you for the drive.
+              Your application and documents for <strong className="text-slate-900">{job.company}</strong> ({job.roleTitle || job.trade}) have been recorded successfully. Our recruitment team will review your profile and contact you soon on your mobile number.
             </p>
 
-            <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="pt-4 flex justify-center">
               <button
                 onClick={onClose}
-                className="rounded-xl bg-orange-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-orange-600 shadow-sm"
+                className="font-montserrat font-bold w-full sm:w-auto rounded-xl bg-gradient-to-r from-[#FF6B00] via-[#FF7A1A] to-[#EA580C] hover:from-[#EA580C] hover:to-[#C2410C] px-8 py-3 text-sm text-white shadow-md shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all"
               >
                 Close & Browse More Jobs
               </button>
-              <Link
-                to="/admin"
-                onClick={onClose}
-                className="rounded-xl border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                View in Admin Portal
-              </Link>
             </div>
           </div>
         ) : (
@@ -1055,7 +1058,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                     <FileText className="h-4 w-4 text-orange-500" />
                     <label className="text-xs font-bold text-slate-800">Resume / Bio-Data</label>
                   </div>
-                  <p className="text-[11px] text-slate-400 mb-2">PDF, DOC, DOCX up to 15MB</p>
+                  <p className="text-[11px] text-slate-400 mb-2">PDF, DOC, DOCX up to 2MB</p>
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx,image/*"
@@ -1075,7 +1078,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                     <GraduationCap className="h-4 w-4 text-sky-500" />
                     <label className="text-xs font-bold text-slate-800">Marks Card / Certificate</label>
                   </div>
-                  <p className="text-[11px] text-slate-400 mb-2">10th / ITI / Diploma Marks Card</p>
+                  <p className="text-[11px] text-slate-400 mb-2">10th / ITI / Diploma Marks Card (up to 2MB)</p>
                   <input
                     type="file"
                     accept=".pdf,image/*"
@@ -1098,7 +1101,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                     </label>
                   </div>
                   <p className="text-[11px] text-slate-400 mb-2">
-                    Aadhaar card, ITI apprenticeship certificate, or past experience letter (PDF, Images up to 15MB)
+                    Aadhaar card, ITI apprenticeship certificate, or past experience letter (PDF, Image up to 2MB)
                   </p>
                   <input
                     type="file"
