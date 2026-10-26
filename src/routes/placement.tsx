@@ -216,7 +216,7 @@ export default function PlacementPage() {
             {/* Left Content Column */}
             <div className="lg:col-span-7 space-y-4">
               {/* Tagged Type UI Badge matching user reference */}
-              <div className="inline-flex items-center rounded-full border-2 border-[#FF6B00] bg-white/95 backdrop-blur-md p-1 pr-4 shadow-sm hover:shadow-md transition-all group cursor-default">
+              <div className="inline-flex items-center rounded-full border-2 border-[#FF6B00] bg-white/95 backdrop-blur-md p-1 pr-3 sm:pr-4 shadow-sm hover:shadow-md transition-all group cursor-default max-w-full">
                 {/* Left Hexagonal Tag */}
                 <div className="relative -ml-0.5 flex h-7 w-8 sm:h-8 sm:w-9 items-center justify-center bg-gradient-to-br from-[#FF6B00] via-[#FF7A1A] to-[#E05300] text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_2px_4px_rgba(255,107,0,0.35)] transition-transform duration-200 group-hover:scale-105">
                   <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
@@ -226,55 +226,65 @@ export default function PlacementPage() {
                 </div>
 
                 {/* Tagged Content Text */}
-                <div className="flex items-center gap-2 pl-2 sm:pl-2.5 text-xs sm:text-sm">
-                  <span className="font-extrabold text-slate-900 tracking-tight">Direct Recruitment Drives</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 pl-2 sm:pl-2.5 text-xs sm:text-sm">
+                  <span className="font-montserrat font-extrabold text-slate-900 tracking-tight text-[11px] sm:text-xs md:text-sm truncate">
+                    Direct Recruitment Drives
+                  </span>
                   <span className="text-orange-400 font-bold">•</span>
-                  <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs">
+                  <span className="font-montserrat font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0">
                     Zero Placement Fees
                   </span>
                 </div>
               </div>
 
-              <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A] sm:text-4xl lg:text-5xl leading-[1.15]">
+              <h1 className="font-montserrat font-extrabold text-2xl sm:text-4xl lg:text-5xl tracking-tight text-[#0F172A] leading-[1.12]">
                 Connecting Talent with <span className="text-[#1A62EA]">Top Industry Leaders</span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-700 max-w-xl leading-relaxed">
+              <p className="text-sm sm:text-base lg:text-lg text-slate-700 max-w-xl leading-relaxed">
                 Explore 1,029+ verified openings across 18 leading manufacturing, electronics, and engineering companies in Karnataka. 100% free placement support with zero service charges.
               </p>
 
-              {/* 4 Value Metrics in Tagged Type UI matching reference */}
-              <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
+              {/* 4 Value Metrics in Tagged Type UI (2-column on mobile, inline-flex on tablet/desktop) */}
+              <div className="pt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
                 {/* 1. 18 Verified Companies */}
-                <div className="group inline-flex items-center rounded-full border border-blue-500/70 bg-white/95 backdrop-blur-md p-1 pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default whitespace-nowrap">
-                  <div className="relative -ml-0.5 flex h-6 w-7 items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(37,99,235,0.35)] transition-transform duration-200 group-hover:scale-110">
+                <div className="group inline-flex items-center rounded-full border border-blue-500/70 bg-white/95 backdrop-blur-md p-1 pr-2.5 sm:pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default">
+                  <div className="relative -ml-0.5 flex h-6 w-6 sm:w-7 items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(37,99,235,0.35)] transition-transform duration-200 group-hover:scale-110">
                     <Briefcase className="h-3 w-3 text-white" />
                   </div>
-                  <span className="pl-2 text-xs font-bold text-slate-800 tracking-tight">18 Verified Companies</span>
+                  <span className="font-montserrat font-extrabold pl-1.5 sm:pl-2 text-[10.5px] sm:text-xs text-slate-900 tracking-tight truncate">
+                    18 Verified Companies
+                  </span>
                 </div>
 
                 {/* 2. 1,029 Total Vacancies */}
-                <div className="group inline-flex items-center rounded-full border border-emerald-500/70 bg-white/95 backdrop-blur-md p-1 pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default whitespace-nowrap">
-                  <div className="relative -ml-0.5 flex h-6 w-7 items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(16,185,129,0.35)] transition-transform duration-200 group-hover:scale-110">
+                <div className="group inline-flex items-center rounded-full border border-emerald-500/70 bg-white/95 backdrop-blur-md p-1 pr-2.5 sm:pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default">
+                  <div className="relative -ml-0.5 flex h-6 w-6 sm:w-7 items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(16,185,129,0.35)] transition-transform duration-200 group-hover:scale-110">
                     <Users className="h-3 w-3 text-white" />
                   </div>
-                  <span className="pl-2 text-xs font-bold text-slate-800 tracking-tight">1,029 Total Vacancies</span>
+                  <span className="font-montserrat font-extrabold pl-1.5 sm:pl-2 text-[10.5px] sm:text-xs text-slate-900 tracking-tight truncate">
+                    1,029 Total Vacancies
+                  </span>
                 </div>
 
                 {/* 3. 100% Free Placement */}
-                <div className="group inline-flex items-center rounded-full border border-[#FF6B00]/70 bg-white/95 backdrop-blur-md p-1 pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default whitespace-nowrap">
-                  <div className="relative -ml-0.5 flex h-6 w-7 items-center justify-center bg-gradient-to-br from-[#FF6B00] to-[#E05300] text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(255,107,0,0.35)] transition-transform duration-200 group-hover:scale-110">
+                <div className="group inline-flex items-center rounded-full border border-[#FF6B00]/70 bg-white/95 backdrop-blur-md p-1 pr-2.5 sm:pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default">
+                  <div className="relative -ml-0.5 flex h-6 w-6 sm:w-7 items-center justify-center bg-gradient-to-br from-[#FF6B00] to-[#E05300] text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(255,107,0,0.35)] transition-transform duration-200 group-hover:scale-110">
                     <ShieldCheck className="h-3 w-3 text-white" />
                   </div>
-                  <span className="pl-2 text-xs font-bold text-slate-800 tracking-tight">100% Free Placement</span>
+                  <span className="font-montserrat font-extrabold pl-1.5 sm:pl-2 text-[10.5px] sm:text-xs text-slate-900 tracking-tight truncate">
+                    100% Free Placement
+                  </span>
                 </div>
 
                 {/* 4. Immediate Joining */}
-                <div className="group inline-flex items-center rounded-full border border-teal-500/70 bg-white/95 backdrop-blur-md p-1 pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default whitespace-nowrap">
-                  <div className="relative -ml-0.5 flex h-6 w-7 items-center justify-center bg-gradient-to-br from-teal-500 to-teal-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(20,184,166,0.35)] transition-transform duration-200 group-hover:scale-110">
+                <div className="group inline-flex items-center rounded-full border border-teal-500/70 bg-white/95 backdrop-blur-md p-1 pr-2.5 sm:pr-3.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default">
+                  <div className="relative -ml-0.5 flex h-6 w-6 sm:w-7 items-center justify-center bg-gradient-to-br from-teal-500 to-teal-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(20,184,166,0.35)] transition-transform duration-200 group-hover:scale-110">
                     <TrendingUp className="h-3 w-3 text-white" />
                   </div>
-                  <span className="pl-2 text-xs font-bold text-slate-800 tracking-tight">Immediate Joining</span>
+                  <span className="font-montserrat font-extrabold pl-1.5 sm:pl-2 text-[10.5px] sm:text-xs text-slate-900 tracking-tight truncate">
+                    Immediate Joining
+                  </span>
                 </div>
               </div>
             </div>
@@ -446,21 +456,29 @@ export default function PlacementPage() {
 
       {/* 3. JOB OPENINGS GRID */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-8 sm:mt-10">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            <h2 className="font-montserrat font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight text-slate-900">
               Available Job Openings
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              Showing <strong>{filteredJobs.length}</strong> verified opportunities ({totalOpeningsCount} total vacancies)
+            <p className="font-montserrat font-semibold text-xs sm:text-sm text-slate-600 mt-1">
+              Showing <strong className="font-montserrat font-extrabold text-slate-900">{filteredJobs.length}</strong> verified opportunities ({totalOpeningsCount.toLocaleString()} total vacancies)
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Direct Recruitment Drives
-            </span>
+          <div className="flex items-center">
+            {/* Tagged Type UI Badge matching user reference */}
+            <div className="inline-flex items-center rounded-full border border-emerald-500/80 bg-white/95 backdrop-blur-md p-1 pr-3 sm:pr-3.5 shadow-2xs hover:shadow-sm transition-all group cursor-default">
+              <div className="relative -ml-0.5 flex h-6 w-6 sm:w-7 items-center justify-center bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1.5px_3px_rgba(16,185,129,0.35)] transition-transform duration-200 group-hover:scale-110">
+                <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-85"></span>
+                  <span className="relative inline-flex rounded-full h-full w-full bg-white"></span>
+                </span>
+              </div>
+              <span className="font-montserrat font-extrabold pl-1.5 sm:pl-2 text-xs sm:text-sm text-emerald-800 tracking-tight">
+                Direct Recruitment Drives
+              </span>
+            </div>
           </div>
         </div>
 
@@ -542,7 +560,7 @@ export default function PlacementPage() {
                           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">
                             {job.sector || "Manufacturing"}
                           </div>
-                          <div className="text-xs font-semibold text-slate-800 truncate" title={job.company}>
+                          <div className="font-montserrat font-bold text-xs sm:text-sm text-slate-800 truncate" title={job.company}>
                             {job.company}
                           </div>
                         </div>
@@ -550,41 +568,41 @@ export default function PlacementPage() {
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         {job.status === "Paused" && (
-                          <span className="rounded bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-700 border border-amber-300/80 whitespace-nowrap">
+                          <span className="font-montserrat font-bold rounded bg-amber-50 px-2 py-0.5 text-[10.5px] text-amber-700 border border-amber-300/80 whitespace-nowrap">
                             Paused
                           </span>
                         )}
-                        <span className="rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/80 whitespace-nowrap shrink-0">
+                        <span className="font-montserrat font-bold rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700 border border-emerald-200/80 whitespace-nowrap shrink-0">
                           {job.openings} Openings
                         </span>
                       </div>
                     </div>
 
                     {/* Role Title */}
-                    <h3 className="mt-2.5 text-[14px] font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 leading-snug tracking-tight">
+                    <h3 className="font-montserrat font-extrabold mt-2.5 text-[15px] sm:text-[16px] text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 leading-snug tracking-tight">
                       {job.roleTitle || job.trade}
                     </h3>
 
                     {/* Location, Gender/Age, Category */}
                     <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 flex-wrap">
-                      <span>{job.location}</span>
+                      <span className="font-medium text-slate-700">{job.location}</span>
                       <span className="text-slate-300">•</span>
                       <span>{job.gender} ({job.age} yrs)</span>
                       <span className="text-slate-300">•</span>
-                      <span className="font-medium text-slate-700">{job.category}</span>
+                      <span className="font-semibold text-slate-700">{job.category}</span>
                     </div>
 
                     {/* Offered Salary / Stipend Block */}
-                    <div className="mt-2.5 rounded bg-slate-50 border border-slate-200/80 p-2.5">
-                      <div className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="mt-2.5 rounded-xl bg-slate-50 border border-slate-200/80 p-2.5">
+                      <div className="font-montserrat font-bold text-[9.5px] uppercase tracking-wider text-slate-400">
                         Offered Salary / Stipend
                       </div>
                       <div className="mt-1 flex items-baseline justify-between gap-2 flex-wrap">
-                        <span className="text-[15px] font-extrabold text-slate-900 tracking-tight">
+                        <span className="font-montserrat font-extrabold text-[16px] text-slate-900 tracking-tight">
                           {job.salaryHighlight || job.salary.split("/-")[0]}
                         </span>
                         {job.takeHomeHighlight && (
-                          <span className="text-[10.5px] font-semibold text-emerald-800 bg-emerald-100/70 border border-emerald-200/80 px-1.5 py-0.5 rounded whitespace-nowrap">
+                          <span className="font-montserrat font-bold text-[10.5px] text-emerald-800 bg-emerald-100/70 border border-emerald-200/80 px-2 py-0.5 rounded whitespace-nowrap">
                             {job.takeHomeHighlight}
                           </span>
                         )}

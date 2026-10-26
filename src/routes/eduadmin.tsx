@@ -84,9 +84,17 @@ export const Route = createFileRoute("/eduadmin")({
       { name: "description", content: "Dedicated Admin Control Center for Trublend EduforCareer recruitment drives and candidate applications." },
       { name: "robots", content: "noindex, nofollow" },
     ],
-  }),
   component: EduAdminPage,
 });
+
+// Native Cryptographic SHA-256 Hashing Helper for Password Protection
+async function sha256Hex(text: string): Promise<string> {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 export default function EduAdminPage() {
   // Stored / Current Admin Email
@@ -202,19 +210,28 @@ export default function EduAdminPage() {
         // Fallback to internal authorized admin accounts
       }
 
-      // 2. Check Authorized Administrator Credentials
-      const storedCreds = JSON.parse(
-        localStorage.getItem("eduadmin_credentials") ||
-        JSON.stringify({ email: "admin@eduforcareer.com", password: "eduadmin@eduforcareer2026" })
+      // 2. Check Authorized Administrator Credentials (Secure SHA-256 Hashed)
+      // Automatically sanitize/purge any legacy plaintext credentials from client storage
+      if (typeof window !== "undefined" && localStorage.getItem("eduadmin_credentials")) {
+        localStorage.removeItem("eduadmin_credentials");
+      }
+
+      const inputHash = await sha256Hex(password);
+      const defaultHash = await sha256Hex("eduadmin@eduforcareer2026");
+
+      const storedAuth = JSON.parse(
+        localStorage.getItem("eduadmin_sec_v2") ||
+        JSON.stringify({ email: "admin@eduforcareer.com", passwordHash: defaultHash })
       );
 
       const isPrimaryAdmin =
-        emailTrim === (storedCreds.email || "admin@eduforcareer.com").toLowerCase() &&
-        (password === storedCreds.password || password === "eduadmin@eduforcareer2026");
+        emailTrim === (storedAuth.email || "admin@eduforcareer.com").toLowerCase() &&
+        (inputHash === storedAuth.passwordHash || inputHash === defaultHash);
 
       if (authenticatedViaSupabase || isPrimaryAdmin) {
         setIsAuthenticated(true);
         setAdminEmail(emailTrim);
+        setLoginPassword(""); // wipe password from component state memory
         sessionStorage.setItem("eduadmin_authenticated", "true");
         sessionStorage.setItem("eduadmin_current_email", emailTrim);
 
@@ -242,20 +259,23 @@ export default function EduAdminPage() {
       await supabase.auth.signOut();
     } catch {}
     setIsAuthenticated(false);
+    setLoginPassword("");
     sessionStorage.removeItem("eduadmin_authenticated");
     sessionStorage.removeItem("eduadmin_current_email");
     localStorage.removeItem("eduadmin_remember_login");
     toast.info("Logged out from EduAdmin");
   };
 
-  const handleChangeCredentials = (e: React.FormEvent) => {
+  const handleChangeCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
-    const storedCreds = JSON.parse(
-      localStorage.getItem("eduadmin_credentials") ||
-      JSON.stringify({ email: "admin@eduforcareer.com", password: "eduadmin@eduforcareer2026" })
+    const defaultHash = await sha256Hex("eduadmin@eduforcareer2026");
+    const storedAuth = JSON.parse(
+      localStorage.getItem("eduadmin_sec_v2") ||
+      JSON.stringify({ email: "admin@eduforcareer.com", passwordHash: defaultHash })
     );
 
-    if (currentPasswordInput !== storedCreds.password && currentPasswordInput !== "eduadmin@eduforcareer2026") {
+    const currentInputHash = await sha256Hex(currentPasswordInput);
+    if (currentInputHash !== storedAuth.passwordHash && currentInputHash !== defaultHash) {
       toast.error("Current password does not match.");
       return;
     }
@@ -270,14 +290,16 @@ export default function EduAdminPage() {
       return;
     }
 
-    const updatedEmail = newEmailInput.trim() || storedCreds.email;
+    const updatedEmail = newEmailInput.trim() || storedAuth.email;
+    const newHash = await sha256Hex(newPasswordInput);
     const updated = {
       email: updatedEmail,
-      password: newPasswordInput,
+      passwordHash: newHash,
       updatedAt: new Date().toISOString(),
     };
 
-    localStorage.setItem("eduadmin_credentials", JSON.stringify(updated));
+    localStorage.setItem("eduadmin_sec_v2", JSON.stringify(updated));
+    localStorage.removeItem("eduadmin_credentials");
     setAdminEmail(updatedEmail);
     sessionStorage.setItem("eduadmin_current_email", updatedEmail);
     setIsSecurityModalOpen(false);
