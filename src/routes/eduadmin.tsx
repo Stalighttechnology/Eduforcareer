@@ -84,6 +84,7 @@ export const Route = createFileRoute("/eduadmin")({
       { name: "description", content: "Dedicated Admin Control Center for Trublend EduforCareer recruitment drives and candidate applications." },
       { name: "robots", content: "noindex, nofollow" },
     ],
+  }),
   component: EduAdminPage,
 });
 
@@ -528,6 +529,9 @@ export default function EduAdminPage() {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Enter your registered email address"
                   value={loginEmail}
                   onChange={(e) => {
@@ -551,6 +555,9 @@ export default function EduAdminPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   required
+                  autoComplete="current-password"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Enter your password"
                   value={loginPassword}
                   onChange={(e) => {
