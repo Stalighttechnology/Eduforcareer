@@ -625,28 +625,48 @@ export default function PlacementPage() {
                       </div>
                     </div>
 
-                    {/* Perks / Benefits Tags (No icons, clean text tags) */}
+                    {/* Perks / Benefits Tags (Tagged Hexagonal Pill UI) */}
                     {hasFreePerks && (
-                      <div className="mt-2 flex flex-wrap gap-1.5 pt-1.5 border-t border-slate-100">
+                      <div className="mt-2.5 flex flex-wrap gap-1.5 pt-2 border-t border-slate-100">
                         {job.food === "Free" && (
-                          <span className="rounded bg-slate-100 text-slate-700 text-[10.5px] font-medium px-2 py-0.5 border border-slate-200/50">
-                            Free Meals
-                          </span>
+                          <div className="group/perk inline-flex items-center rounded-full border border-emerald-500/80 bg-white p-0.5 pr-2 sm:pr-2.5 shadow-2xs hover:shadow-xs transition-all cursor-default">
+                            <div className="relative -ml-0.5 flex h-4.5 w-4.5 sm:h-5 sm:w-5 items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1px_2px_rgba(16,185,129,0.35)] transition-transform duration-200 group-hover/perk:scale-110">
+                              <Utensils className="h-2.5 w-2.5 text-white" />
+                            </div>
+                            <span className="font-montserrat font-extrabold text-[10px] sm:text-[10.5px] text-emerald-900 pl-1 sm:pl-1.5 tracking-tight">
+                              Free Meals
+                            </span>
+                          </div>
                         )}
                         {job.food === "Subsidized Canteen" && (
-                          <span className="rounded bg-slate-100 text-slate-700 text-[10.5px] font-medium px-2 py-0.5 border border-slate-200/50">
-                            Canteen Available
-                          </span>
+                          <div className="group/perk inline-flex items-center rounded-full border border-amber-500/80 bg-white p-0.5 pr-2 sm:pr-2.5 shadow-2xs hover:shadow-xs transition-all cursor-default">
+                            <div className="relative -ml-0.5 flex h-4.5 w-4.5 sm:h-5 sm:w-5 items-center justify-center bg-gradient-to-br from-amber-500 to-amber-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1px_2px_rgba(245,158,11,0.35)] transition-transform duration-200 group-hover/perk:scale-110">
+                              <Utensils className="h-2.5 w-2.5 text-white" />
+                            </div>
+                            <span className="font-montserrat font-extrabold text-[10px] sm:text-[10.5px] text-amber-900 pl-1 sm:pl-1.5 tracking-tight">
+                              Canteen Available
+                            </span>
+                          </div>
                         )}
                         {job.accommodation === "Free" && (
-                          <span className="rounded bg-slate-100 text-slate-700 text-[10.5px] font-medium px-2 py-0.5 border border-slate-200/50">
-                            Free Stay
-                          </span>
+                          <div className="group/perk inline-flex items-center rounded-full border border-sky-500/80 bg-white p-0.5 pr-2 sm:pr-2.5 shadow-2xs hover:shadow-xs transition-all cursor-default">
+                            <div className="relative -ml-0.5 flex h-4.5 w-4.5 sm:h-5 sm:w-5 items-center justify-center bg-gradient-to-br from-sky-500 to-sky-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1px_2px_rgba(14,165,233,0.35)] transition-transform duration-200 group-hover/perk:scale-110">
+                              <Home className="h-2.5 w-2.5 text-white" />
+                            </div>
+                            <span className="font-montserrat font-extrabold text-[10px] sm:text-[10.5px] text-sky-900 pl-1 sm:pl-1.5 tracking-tight">
+                              Free Stay
+                            </span>
+                          </div>
                         )}
                         {job.transport === "Free" && (
-                          <span className="rounded bg-slate-100 text-slate-700 text-[10.5px] font-medium px-2 py-0.5 border border-slate-200/50">
-                            Free Transport
-                          </span>
+                          <div className="group/perk inline-flex items-center rounded-full border border-purple-500/80 bg-white p-0.5 pr-2 sm:pr-2.5 shadow-2xs hover:shadow-xs transition-all cursor-default">
+                            <div className="relative -ml-0.5 flex h-4.5 w-4.5 sm:h-5 sm:w-5 items-center justify-center bg-gradient-to-br from-purple-500 to-purple-700 text-white [clip-path:polygon(22%_0%,78%_0%,100%_50%,78%_100%,22%_100%,0%_50%)] shrink-0 filter drop-shadow-[0_1px_2px_rgba(168,85,247,0.35)] transition-transform duration-200 group-hover/perk:scale-110">
+                              <Bus className="h-2.5 w-2.5 text-white" />
+                            </div>
+                            <span className="font-montserrat font-extrabold text-[10px] sm:text-[10.5px] text-purple-900 pl-1 sm:pl-1.5 tracking-tight">
+                              Free Transport
+                            </span>
+                          </div>
                         )}
                       </div>
                     )}
