@@ -7,7 +7,7 @@ const whatWeOffer = [
   { label: "IT Training", to: "/" },
   { label: "Corporate Training", to: "/corporate-training" },
   { label: "Careers & Openings", to: "/placement" },
-  { label: "Admin Recruitment Portal", to: "/admin" },
+  { label: "Admin Recruitment Portal", to: "/eduadmin" },
   { label: "Contact Us", to: "/contact" },
 ];
 
@@ -22,7 +22,7 @@ const popularCourses = [
 export default function Footer() {
   return (
     <footer className="bg-footer-bg text-footer-foreground">
-      <div className="mx-auto max-w-7xl px-4 py-14 lg:px-8">
+      <div className="mx-auto max-w-[1440px] w-full px-4 py-14 lg:px-8 xl:px-10">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>

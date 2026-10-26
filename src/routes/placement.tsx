@@ -198,20 +198,18 @@ export default function PlacementPage() {
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-28">
       {/* 1. HERO SECTION - HIREFY STYLE */}
       <section className="relative overflow-hidden border-b border-slate-200/80 pt-10 pb-10 lg:pt-14 lg:pb-12 bg-gradient-to-r from-[#F0F5FF] via-[#F8FAFC] to-[#FFF7ED]">
-        {/* Pastel Abstract Gradient Waves Background - Vividly & Correctly Visible Directly Behind Text */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
-          <div className="relative mx-auto max-w-7xl h-full w-full">
-            <img
-              src={pastelWavesBg}
-              alt="Pastel Abstract Gradient Waves"
-              className="w-full h-full object-cover object-center contrast-[1.2] saturate-[1.35] opacity-100"
-            />
-          </div>
+        {/* Pastel Abstract Gradient Waves Background - Vividly & Correctly Visible Full Width */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none w-full h-full">
+          <img
+            src={pastelWavesBg}
+            alt="Pastel Abstract Gradient Waves"
+            className="w-full h-full object-cover object-center contrast-[1.2] saturate-[1.35] opacity-100"
+          />
           {/* Subtle bottom fade for seamless transition to filter bar */}
           <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#F8FAFC] to-transparent"></div>
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto max-w-[1440px] w-full px-4 sm:px-6 lg:px-8 xl:px-10">
           <div className="grid items-center gap-8 lg:grid-cols-12">
             {/* Left Content Column */}
             <div className="lg:col-span-7 space-y-4">
@@ -241,7 +239,7 @@ export default function PlacementPage() {
                 Connecting Talent with <span className="text-[#1A62EA]">Top Industry Leaders</span>
               </h1>
 
-              <p className="text-sm sm:text-base lg:text-lg text-slate-700 max-w-xl leading-relaxed">
+              <p className="text-sm sm:text-base lg:text-lg text-slate-700 max-w-2xl leading-relaxed">
                 Explore 1,029+ verified openings across 18 leading manufacturing, electronics, and engineering companies in Karnataka. 100% free placement support with zero service charges.
               </p>
 
@@ -305,7 +303,7 @@ export default function PlacementPage() {
       </section>
 
       {/* 2. SEARCH & FILTER CONSOLE */}
-      <section className="relative -mt-6 z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative -mt-6 z-20 mx-auto max-w-[1440px] w-full px-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="rounded-lg border border-slate-200/90 bg-white p-4 shadow-xs">
           {/* Top Row: Search + Location + Gender */}
           <div className="grid gap-2.5 lg:grid-cols-12 items-center">
@@ -455,7 +453,7 @@ export default function PlacementPage() {
       </section>
 
       {/* 3. JOB OPENINGS GRID */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-8 sm:mt-10">
+      <section className="mx-auto max-w-[1440px] w-full px-4 sm:px-6 lg:px-8 xl:px-10 mt-8 sm:mt-10">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h2 className="font-montserrat font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight text-slate-900">

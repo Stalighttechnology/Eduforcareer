@@ -15,7 +15,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-background shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8">
+      <div className="mx-auto flex max-w-[1440px] w-full items-center justify-between px-4 py-3 lg:px-8 xl:px-10">
         <Link to="/" className="flex-shrink-0">
           <img src={logo} alt="Trublend EduforCareer" className="h-14 w-auto max-w-[290px]" />
         </Link>
