@@ -540,10 +540,10 @@ export default function PlacementPage() {
                     {/* Top Row: Logo / Monogram + Company & Sector + Openings */}
                     <div className="flex items-start justify-between gap-2.5">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {COMPANY_LOGOS[job.company] ? (
+                        {job.logoUrl || COMPANY_LOGOS[job.company] ? (
                           <div className="w-12 h-9 rounded-md bg-white border border-slate-200/90 p-1 flex items-center justify-center shrink-0 shadow-2xs">
                             <img
-                              src={COMPANY_LOGOS[job.company]}
+                              src={job.logoUrl || COMPANY_LOGOS[job.company]}
                               alt={job.company}
                               className="max-h-full max-w-full object-contain"
                               loading="lazy"
@@ -794,8 +794,81 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.contact.trim() || !formData.address.trim()) {
-      toast.error("Please fill in your Name, Contact Mobile, and Address.");
+
+    if (!formData.name.trim()) {
+      toast.error("Please enter your Full Name.");
+      return;
+    }
+
+    const cleanPhone = formData.contact.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      toast.error("Please enter your Email Address.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast.error("Please enter a valid email address (e.g. name@gmail.com).");
+      return;
+    }
+
+    if (!formData.gender) {
+      toast.error("Please select your Gender.");
+      return;
+    }
+
+    if (!formData.dob) {
+      toast.error("Please enter your Date of Birth.");
+      return;
+    }
+
+    if (!formData.preferredLocation) {
+      toast.error("Please select your Preferred Work Location.");
+      return;
+    }
+
+    if (!formData.address.trim()) {
+      toast.error("Please enter your Permanent / Current Address.");
+      return;
+    }
+
+    if (!formData.qualification.trim()) {
+      toast.error("Please enter your Highest Qualification.");
+      return;
+    }
+
+    if (!formData.trade.trim()) {
+      toast.error("Please enter your Trade / Specialization.");
+      return;
+    }
+
+    if (!resumeFile) {
+      toast.error("Resume / Bio-Data is mandatory. Please upload your document (under 2MB).");
+      return;
+    }
+
+    if (resumeFile.size > 2 * 1024 * 1024) {
+      toast.error(`Resume file "${resumeFile.name}" exceeds 2MB limit. Please upload a smaller file.`);
+      return;
+    }
+
+    if (!marksCardFile) {
+      toast.error("Marks Card / Certificate is mandatory. Please upload your document (under 2MB).");
+      return;
+    }
+
+    if (marksCardFile.size > 2 * 1024 * 1024) {
+      toast.error(`Marks Card file "${marksCardFile.name}" exceeds 2MB limit. Please upload a smaller file.`);
+      return;
+    }
+
+    if (additionalDocFile && additionalDocFile.size > 2 * 1024 * 1024) {
+      toast.error(`Additional document "${additionalDocFile.name}" exceeds 2MB limit. Please upload a smaller file.`);
       return;
     }
 
@@ -805,14 +878,14 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
         jobId: job.id,
         jobCompany: job.company,
         jobRole: job.roleTitle || job.trade,
-        name: formData.name,
-        email: formData.email,
-        contact: formData.contact,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        contact: cleanPhone,
         dob: formData.dob,
         gender: formData.gender,
-        address: formData.address,
-        qualification: formData.qualification,
-        trade: formData.trade,
+        address: formData.address.trim(),
+        qualification: formData.qualification.trim(),
+        trade: formData.trade.trim(),
         preferredLocation: formData.preferredLocation,
         resumeFile: resumeFile,
         marksCardFile: marksCardFile,
@@ -838,10 +911,10 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-100 p-6 bg-slate-50/80 rounded-t-2xl gap-4">
           <div className="flex items-center gap-3.5 min-w-0">
-            {COMPANY_LOGOS[job.company] ? (
+            {job.logoUrl || COMPANY_LOGOS[job.company] ? (
               <div className="w-14 h-11 rounded-md bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 shadow-2xs">
                 <img
-                  src={COMPANY_LOGOS[job.company]}
+                  src={job.logoUrl || COMPANY_LOGOS[job.company]}
                   alt={job.company}
                   className="max-h-full max-w-full object-contain"
                 />
@@ -903,7 +976,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
             {/* Step 1: Personal Details */}
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-blue-600" /> 1. Personal Details
+                <User className="h-3.5 w-3.5 text-blue-600" /> 1. Personal Details (All fields mandatory)
               </h4>
               <div className="grid gap-3.5 sm:grid-cols-2">
                 <div>
@@ -923,12 +996,13 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Mobile Number <span className="text-red-500">*</span>
+                    Mobile Number (10 Digits) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
                     name="contact"
                     required
+                    maxLength={10}
                     value={formData.contact}
                     onChange={handleChange}
                     placeholder="10-digit mobile number"
@@ -938,11 +1012,12 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Email Address (Optional)
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     name="email"
+                    required
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="name@gmail.com"
@@ -952,9 +1027,12 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Gender <span className="text-red-500">*</span>
+                    </label>
                     <select
                       name="gender"
+                      required
                       value={formData.gender}
                       onChange={handleChange}
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none cursor-pointer"
@@ -964,13 +1042,16 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Date of Birth <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="date"
                       name="dob"
+                      required
                       value={formData.dob}
                       onChange={handleChange}
-                      className="w-full rounded-xl border border-slate-200 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none cursor-pointer"
                     />
                   </div>
                 </div>
@@ -998,6 +1079,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                   <div className="relative">
                     <select
                       name="preferredLocation"
+                      required
                       value={formData.preferredLocation}
                       onChange={handleChange}
                       className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2 text-sm font-semibold text-slate-800 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
@@ -1047,14 +1129,15 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Trade / Specialization
+                      Trade / Specialization <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="trade"
+                      required
                       value={formData.trade}
                       onChange={handleChange}
-                      placeholder="e.g. Electrician, Fitter, Mechanical"
+                      placeholder="e.g. Electrician, Fitter, Mechanical, Any Trade"
                       className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
@@ -1065,60 +1148,97 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
             {/* Step 3: Documents Upload */}
             <div className="border-t border-slate-100 pt-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5 text-blue-600" /> 3. Document Uploads (Resume & Certificates)
+                <FileText className="h-3.5 w-3.5 text-blue-600" /> 3. Document Uploads (All Docs Must Be Under 2MB)
               </h4>
               <p className="text-xs text-slate-500 mb-3">
-                Attach your resume and academic/trade certificates for faster verification by company recruiters.
+                Attach your resume and academic/trade certificates. Both Resume and Marks Card are strictly mandatory.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {/* 1. Resume Upload */}
-                <div className="rounded-xl border border-dashed border-slate-300 p-3.5 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-2 mb-1">
-                    <FileText className="h-4 w-4 text-orange-500" />
-                    <label className="text-xs font-bold text-slate-800">Resume / Bio-Data</label>
+                <div
+                  className={`rounded-xl border border-dashed p-3.5 transition-colors ${
+                    !resumeFile ? "border-amber-300 bg-amber-50/30" : "border-emerald-300 bg-emerald-50/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-orange-500" />
+                      <label className="text-xs font-bold text-slate-800">
+                        Resume / Bio-Data <span className="text-red-500">*</span>
+                      </label>
+                    </div>
+                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                      Mandatory (Max 2MB)
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mb-2">PDF, DOC, DOCX up to 2MB</p>
+                  <p className="text-[11px] text-slate-400 mb-2">PDF, DOC, DOCX or Image up to 2MB</p>
                   <input
                     type="file"
+                    required={!resumeFile}
                     accept=".pdf,.doc,.docx,image/*"
                     onChange={(e) => handleFileChange(e, "resume")}
                     className="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 cursor-pointer"
                   />
-                  {resumeFile && (
-                    <div className="mt-2 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Attached: {resumeFile.name}
+                  {resumeFile ? (
+                    <div className="mt-2 text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Attached: {resumeFile.name} ({(resumeFile.size / 1024).toFixed(0)} KB)
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 text-[10.5px] text-amber-700 font-medium">
+                      * Please select and upload your resume file
                     </div>
                   )}
                 </div>
 
                 {/* 2. Marks Card Upload */}
-                <div className="rounded-xl border border-dashed border-slate-300 p-3.5 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-2 mb-1">
-                    <GraduationCap className="h-4 w-4 text-sky-500" />
-                    <label className="text-xs font-bold text-slate-800">Marks Card / Certificate</label>
+                <div
+                  className={`rounded-xl border border-dashed p-3.5 transition-colors ${
+                    !marksCardFile ? "border-amber-300 bg-amber-50/30" : "border-emerald-300 bg-emerald-50/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-sky-500" />
+                      <label className="text-xs font-bold text-slate-800">
+                        Marks Card / Certificate <span className="text-red-500">*</span>
+                      </label>
+                    </div>
+                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                      Mandatory (Max 2MB)
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mb-2">10th / ITI / Diploma Marks Card (up to 2MB)</p>
+                  <p className="text-[11px] text-slate-400 mb-2">10th / ITI / Diploma Marks Card (PDF/Image up to 2MB)</p>
                   <input
                     type="file"
+                    required={!marksCardFile}
                     accept=".pdf,image/*"
                     onChange={(e) => handleFileChange(e, "markscard")}
                     className="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-600 file:text-white hover:file:bg-sky-700 cursor-pointer"
                   />
-                  {marksCardFile && (
-                    <div className="mt-2 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Attached: {marksCardFile.name}
+                  {marksCardFile ? (
+                    <div className="mt-2 text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Attached: {marksCardFile.name} ({(marksCardFile.size / 1024).toFixed(0)} KB)
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 text-[10.5px] text-amber-700 font-medium">
+                      * Please select and upload your marks card / certificate
                     </div>
                   )}
                 </div>
 
                 {/* 3. Additional Document / ID Proof Upload */}
                 <div className="sm:col-span-2 rounded-xl border border-dashed border-slate-300 p-3.5 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-2 mb-1">
-                    <ShieldCheck className="h-4 w-4 text-purple-600" />
-                    <label className="text-xs font-bold text-slate-800">
-                      Additional Document / Aadhaar Card / Experience Certificate (Optional)
-                    </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-purple-600" />
+                      <label className="text-xs font-bold text-slate-800">
+                        Additional Document / Aadhaar Card / Experience Certificate
+                      </label>
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      Optional (Max 2MB)
+                    </span>
                   </div>
                   <p className="text-[11px] text-slate-400 mb-2">
                     Aadhaar card, ITI apprenticeship certificate, or past experience letter (PDF, Image up to 2MB)
@@ -1131,7 +1251,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                   />
                   {additionalDocFile && (
                     <div className="mt-2 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Attached: {additionalDocFile.name}
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Attached: {additionalDocFile.name} ({(additionalDocFile.size / 1024).toFixed(0)} KB)
                     </div>
                   )}
                 </div>

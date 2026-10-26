@@ -22,6 +22,7 @@ export interface JobOpening {
   openings: number;
   featured?: boolean;
   status?: "Active" | "Paused" | "Closed";
+  logoUrl?: string;
 }
 
 export interface JobApplicationSubmission {

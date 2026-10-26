@@ -818,10 +818,10 @@ export default function EduAdminPage() {
                           {/* Company & Role */}
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
-                              {COMPANY_LOGOS[job.company] ? (
-                                <div className="w-9 h-7 rounded border border-slate-200 bg-white p-0.5 flex items-center justify-center shrink-0">
+                              {job.logoUrl || COMPANY_LOGOS[job.company] ? (
+                                <div className="w-9 h-7 rounded border border-slate-200 bg-white p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
                                   <img
-                                    src={COMPANY_LOGOS[job.company]}
+                                    src={job.logoUrl || COMPANY_LOGOS[job.company]}
                                     alt={job.company}
                                     className="max-h-full max-w-full object-contain"
                                   />
@@ -1247,7 +1247,71 @@ export default function EduAdminPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveJobEdit} className="mt-4 space-y-3 text-xs">
+            <form onSubmit={handleSaveJobEdit} className="mt-4 space-y-3.5 text-xs">
+              {/* Company Logo Upload / Change Control */}
+              <div className="rounded-xl border border-dashed border-slate-300 p-3 bg-slate-50/70">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-orange-500" />
+                    Company Logo (Syncs to Careers Page)
+                  </label>
+                  {editingJob.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingJob({ ...editingJob, logoUrl: undefined })}
+                      className="text-[11px] text-rose-600 hover:underline font-semibold"
+                    >
+                      Reset to Default Logo
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-12 rounded-lg border border-slate-200 bg-white p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                    {editingJob.logoUrl || COMPANY_LOGOS[editingJob.company] ? (
+                      <img
+                        src={editingJob.logoUrl || COMPANY_LOGOS[editingJob.company]}
+                        alt={editingJob.company}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <span className="font-mono text-xs font-bold text-slate-700">
+                        {editingJob.company.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 2 * 1024 * 1024) {
+                            toast.error("Logo file size must be less than 2MB.");
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const dataUrl = ev.target?.result as string;
+                            if (dataUrl) {
+                              setEditingJob({ ...editingJob, logoUrl: dataUrl });
+                              toast.success("New company logo loaded! Click 'Save Changes' to update everywhere.");
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-white hover:file:bg-slate-700 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Upload PNG, JPG, WebP, or SVG (Max 2MB). Change takes effect instantly on the careers applicant page upon saving.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Company Name</label>
