@@ -5,8 +5,9 @@ import logo from "../assets/TruBlend EduforCareer white without bg.png";
 const whatWeOffer = [
   { label: "About Us", to: "/about" },
   { label: "IT Training", to: "/" },
-  { label: "Corporate Training", to: "/" },
-  { label: "Careers", to: "/careers" },
+  { label: "Corporate Training", to: "/corporate-training" },
+  { label: "Careers & Openings", to: "/placement" },
+  { label: "Admin Recruitment Portal", to: "/admin" },
   { label: "Contact Us", to: "/contact" },
 ];
 

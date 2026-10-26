@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SmoothScroll from "@/components/SmoothScroll";
 
 function NotFoundComponent() {
   return (
@@ -43,7 +44,7 @@ export const Route = createRootRoute({
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <SmoothScroll>{children}</SmoothScroll>;
 }
 
 function RootComponent() {

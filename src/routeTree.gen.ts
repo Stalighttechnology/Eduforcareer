@@ -13,10 +13,12 @@ import { Route as SkillsRouteImport } from './routes/skills'
 import { Route as PlacementRouteImport } from './routes/placement'
 import { Route as ItTrainingRouteImport } from './routes/it-training'
 import { Route as ItDetailsRouteImport } from './routes/it-details'
+import { Route as EduadminRouteImport } from './routes/eduadmin'
 import { Route as CorporateTrainingRouteImport } from './routes/corporate-training'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AviationRouteImport } from './routes/aviation'
 import { Route as ApplyTailoringRouteImport } from './routes/apply-tailoring'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as RecentCoursesRouteImport } from './routes/RecentCourses'
 import { Route as IndexRouteImport } from './routes/index'
@@ -41,6 +43,11 @@ const ItDetailsRoute = ItDetailsRouteImport.update({
   path: '/it-details',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EduadminRoute = EduadminRouteImport.update({
+  id: '/eduadmin',
+  path: '/eduadmin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CorporateTrainingRoute = CorporateTrainingRouteImport.update({
   id: '/corporate-training',
   path: '/corporate-training',
@@ -59,6 +66,11 @@ const AviationRoute = AviationRouteImport.update({
 const ApplyTailoringRoute = ApplyTailoringRouteImport.update({
   id: '/apply-tailoring',
   path: '/apply-tailoring',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -81,10 +93,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/RecentCourses': typeof RecentCoursesRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/apply-tailoring': typeof ApplyTailoringRoute
   '/aviation': typeof AviationRoute
   '/contact': typeof ContactRoute
   '/corporate-training': typeof CorporateTrainingRoute
+  '/eduadmin': typeof EduadminRoute
   '/it-details': typeof ItDetailsRoute
   '/it-training': typeof ItTrainingRoute
   '/placement': typeof PlacementRoute
@@ -94,10 +108,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/RecentCourses': typeof RecentCoursesRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/apply-tailoring': typeof ApplyTailoringRoute
   '/aviation': typeof AviationRoute
   '/contact': typeof ContactRoute
   '/corporate-training': typeof CorporateTrainingRoute
+  '/eduadmin': typeof EduadminRoute
   '/it-details': typeof ItDetailsRoute
   '/it-training': typeof ItTrainingRoute
   '/placement': typeof PlacementRoute
@@ -108,10 +124,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/RecentCourses': typeof RecentCoursesRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/apply-tailoring': typeof ApplyTailoringRoute
   '/aviation': typeof AviationRoute
   '/contact': typeof ContactRoute
   '/corporate-training': typeof CorporateTrainingRoute
+  '/eduadmin': typeof EduadminRoute
   '/it-details': typeof ItDetailsRoute
   '/it-training': typeof ItTrainingRoute
   '/placement': typeof PlacementRoute
@@ -123,10 +141,12 @@ export interface FileRouteTypes {
     | '/'
     | '/RecentCourses'
     | '/about'
+    | '/admin'
     | '/apply-tailoring'
     | '/aviation'
     | '/contact'
     | '/corporate-training'
+    | '/eduadmin'
     | '/it-details'
     | '/it-training'
     | '/placement'
@@ -136,10 +156,12 @@ export interface FileRouteTypes {
     | '/'
     | '/RecentCourses'
     | '/about'
+    | '/admin'
     | '/apply-tailoring'
     | '/aviation'
     | '/contact'
     | '/corporate-training'
+    | '/eduadmin'
     | '/it-details'
     | '/it-training'
     | '/placement'
@@ -149,10 +171,12 @@ export interface FileRouteTypes {
     | '/'
     | '/RecentCourses'
     | '/about'
+    | '/admin'
     | '/apply-tailoring'
     | '/aviation'
     | '/contact'
     | '/corporate-training'
+    | '/eduadmin'
     | '/it-details'
     | '/it-training'
     | '/placement'
@@ -163,10 +187,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RecentCoursesRoute: typeof RecentCoursesRoute
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
   ApplyTailoringRoute: typeof ApplyTailoringRoute
   AviationRoute: typeof AviationRoute
   ContactRoute: typeof ContactRoute
   CorporateTrainingRoute: typeof CorporateTrainingRoute
+  EduadminRoute: typeof EduadminRoute
   ItDetailsRoute: typeof ItDetailsRoute
   ItTrainingRoute: typeof ItTrainingRoute
   PlacementRoute: typeof PlacementRoute
@@ -203,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItDetailsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/eduadmin': {
+      id: '/eduadmin'
+      path: '/eduadmin'
+      fullPath: '/eduadmin'
+      preLoaderRoute: typeof EduadminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/corporate-training': {
       id: '/corporate-training'
       path: '/corporate-training'
@@ -229,6 +262,13 @@ declare module '@tanstack/react-router' {
       path: '/apply-tailoring'
       fullPath: '/apply-tailoring'
       preLoaderRoute: typeof ApplyTailoringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -259,10 +299,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RecentCoursesRoute: RecentCoursesRoute,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
   ApplyTailoringRoute: ApplyTailoringRoute,
   AviationRoute: AviationRoute,
   ContactRoute: ContactRoute,
   CorporateTrainingRoute: CorporateTrainingRoute,
+  EduadminRoute: EduadminRoute,
   ItDetailsRoute: ItDetailsRoute,
   ItTrainingRoute: ItTrainingRoute,
   PlacementRoute: PlacementRoute,

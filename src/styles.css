@@ -3,26 +3,45 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Global smooth scrolling */
+/* Global smooth scrolling & performance optimizations */
 html {
-  scroll-behavior: smooth;
   scroll-padding-top: 88px; /* Adjust for fixed header */
   scrollbar-gutter: stable;
-}
-
-/* Optimize scrolling performance */
-* {
-  -webkit-overflow-scrolling: touch;
-  box-sizing: border-box;
-}
-
-html, body {
-  overscroll-behavior-y: contain;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   overflow-x: hidden;
-  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+}
+
+/* Lenis buttery-smooth momentum scrolling rules */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* GPU hardware compositing for sticky header */
+header.sticky {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -230,14 +249,17 @@ body {
   border: 1px solid hsl(220 13% 93%);
 }
 
-/* Hiring partners marquee */
+/* Hiring partners marquee - GPU Hardware Accelerated */
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
 .marquee-track {
   display: flex;
-  animation: marquee 20s linear infinite;
+  animation: marquee 25s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 /* Page header banner */

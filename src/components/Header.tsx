@@ -78,7 +78,7 @@ export default function Header() {
                 {p.name}
               </Link>
             ))}
-            <Link to="/placement" className="text-sm font-medium" onClick={() => setMobileOpen(false)}>Placement Assistance</Link>
+            <Link to="/placement" className="text-sm font-medium" onClick={() => setMobileOpen(false)}>Careers & Openings</Link>
             <Link to="/contact" className="text-sm font-medium" onClick={() => setMobileOpen(false)}>Contact Us</Link>
           </div>
         </div>

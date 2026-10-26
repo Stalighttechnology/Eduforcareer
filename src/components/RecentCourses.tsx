@@ -7,7 +7,7 @@ import {
 
 // Assets
 import av4 from "../assets/av4.png";
-import av3 from "../assets/av3.png";
+import av3 from "../assets/av3_optimized.jpg";
 import tailoringImg from "../assets/tailoring.jpg"; // Added tailoring image import
 
 // --- Native Scroll Animation Component ---
@@ -115,13 +115,8 @@ export default function RecentCourses() {
   }, [heroImages.length]);
 
   return (
-    <section id="opportunity-hub" className="bg-[#FAFAFC] py-24 lg:py-32 overflow-hidden scroll-smooth font-sans">
-      <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
-      `}} />
-
-      <div className="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8 font-jakarta">
+    <section id="opportunity-hub" className="bg-[#FAFAFC] py-24 lg:py-32 overflow-hidden font-sans">
+      <div className="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8">
         
         {/* Header Section */}
         <FadeInOnScroll delay={0}>
