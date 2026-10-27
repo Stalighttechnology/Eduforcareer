@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
+import faviconLogo from "@/assets/trublendeduforcarrier copy.png";
 
 function NotFoundComponent() {
   return (
@@ -36,6 +37,10 @@ export const Route = createRootRoute({
       { name: "description", content: "Trublend EduforCareer is a leading training and career development institute in Bangalore." },
       { name: "author", content: "Trublend EduforCareer" },
       { property: "og:type", content: "website" },
+    ],
+    links: [
+      { rel: "icon", type: "image/png", href: faviconLogo },
+      { rel: "apple-touch-icon", href: faviconLogo },
     ],
   }),
   shellComponent: RootShell,
