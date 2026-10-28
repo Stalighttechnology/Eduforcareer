@@ -36,7 +36,11 @@ import {
   X,
   Save,
   RotateCcw,
-  Paperclip
+  Paperclip,
+  Printer,
+  Copy,
+  MessageSquare,
+  Share2
 } from "lucide-react";
 import brandLogo from "@/assets/trublendeduforcarrier.png";
 import { supabase } from "@/lib/supabase";
@@ -98,6 +102,26 @@ async function sha256Hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+// Helper to calculate candidate age from DOB
+function calculateCandidateAge(dobString?: string | null): string | null {
+  if (!dobString) return null;
+  const birthDate = new Date(dobString);
+  if (isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age > 0 && age < 100 ? `${age} yrs` : null;
+}
+
+// Check if document link is an image for inline preview
+function isImageDoc(url?: string | null): boolean {
+  if (!url) return false;
+  return /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url);
 }
 
 export default function EduAdminPage() {
@@ -177,6 +201,19 @@ export default function EduAdminPage() {
   const [loadingApps, setLoadingApps] = useState<boolean>(true);
   const [appSearch, setAppSearch] = useState<string>("");
   const [appStatusFilter, setAppStatusFilter] = useState<string>("ALL");
+
+  // State for Candidate Detail View Modal (Popup)
+  const [viewingApp, setViewingApp] = useState<StoredJobApplication | null>(null);
+  const [appNotesInput, setAppNotesInput] = useState<string>("");
+  const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+
+  // Sync notes when viewing a candidate
+  useEffect(() => {
+    if (viewingApp) {
+      setAppNotesInput(viewingApp.notes || "");
+    }
+  }, [viewingApp]);
 
   // Permission & Confirmation Dialog Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -434,15 +471,36 @@ export default function EduAdminPage() {
   };
 
   // Handle Application Status Change
-  const handleStatusChange = async (appId: string, newStatus: StoredJobApplication["status"]) => {
+  const handleStatusChange = async (appId: string, newStatus: StoredJobApplication["status"], notes?: string) => {
     try {
-      await updateApplicationStatus(appId, newStatus);
+      await updateApplicationStatus(appId, newStatus, notes);
       setApplications((prev) =>
-        prev.map((a) => (a.id === appId ? { ...a, status: newStatus } : a))
+        prev.map((a) => (a.id === appId ? { ...a, status: newStatus, ...(notes !== undefined ? { notes } : {}) } : a))
       );
+      if (viewingApp && viewingApp.id === appId) {
+        setViewingApp((prev) => (prev ? { ...prev, status: newStatus, ...(notes !== undefined ? { notes } : {}) } : null));
+      }
       toast.success(`Application status updated to "${newStatus}"`);
     } catch {
       toast.error("Could not update status");
+    }
+  };
+
+  // Save internal notes for candidate from inside the view modal
+  const handleSaveAppNotes = async () => {
+    if (!viewingApp) return;
+    setIsSavingNotes(true);
+    try {
+      await updateApplicationStatus(viewingApp.id, viewingApp.status, appNotesInput);
+      setApplications((prev) =>
+        prev.map((a) => (a.id === viewingApp.id ? { ...a, notes: appNotesInput } : a))
+      );
+      setViewingApp((prev) => (prev ? { ...prev, notes: appNotesInput } : null));
+      toast.success("Candidate notes saved successfully!");
+    } catch {
+      toast.error("Failed to save candidate notes.");
+    } finally {
+      setIsSavingNotes(false);
     }
   };
 
@@ -460,6 +518,9 @@ export default function EduAdminPage() {
           await deleteApplication(app.id);
           setApplications((prev) => prev.filter((a) => a.id !== app.id));
           setSelectedAppIds((prev) => prev.filter((id) => id !== app.id));
+          if (viewingApp && viewingApp.id === app.id) {
+            setViewingApp(null);
+          }
           toast.success(`Application for "${app.name}" deleted successfully.`);
         } catch {
           toast.error("Failed to delete application.");
@@ -1247,12 +1308,13 @@ export default function EduAdminPage() {
                 </p>
               </div>
             ) : (
-              <div className="rounded-lg border border-slate-200 bg-white shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+              <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+                {/* Desktop Responsive Table with Defined Column Proportions */}
+                <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200">
+                  <table className="w-full text-left text-xs min-w-[1200px]">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
                       <tr>
-                        <th className="px-3 py-3 w-10 text-center">
+                        <th className="px-3.5 py-3.5 w-12 text-center">
                           <input
                             type="checkbox"
                             checked={allFilteredSelected}
@@ -1261,13 +1323,13 @@ export default function EduAdminPage() {
                             title={allFilteredSelected ? "Deselect All Filtered" : "Select All Filtered"}
                           />
                         </th>
-                        <th className="px-4 py-3">Applied Company</th>
-                        <th className="px-4 py-3">Candidate Details</th>
-                        <th className="px-3 py-3">Contact</th>
-                        <th className="px-3 py-3">Qualification</th>
-                        <th className="px-3 py-3">Documents</th>
-                        <th className="px-3 py-3 text-center">Status</th>
-                        <th className="px-4 py-3 text-right">Quick Decision</th>
+                        <th className="px-4 py-3.5 w-[240px]">Applied Company</th>
+                        <th className="px-4 py-3.5 w-[230px]">Candidate Details</th>
+                        <th className="px-3.5 py-3.5 w-[180px]">Contact</th>
+                        <th className="px-3.5 py-3.5 w-[130px]">Qualification</th>
+                        <th className="px-3.5 py-3.5 w-[140px]">Documents</th>
+                        <th className="px-3.5 py-3.5 w-[110px] text-center">Status</th>
+                        <th className="px-4 py-3.5 min-w-[240px] text-right">Quick Decision</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
@@ -1279,7 +1341,7 @@ export default function EduAdminPage() {
                           }`}
                         >
                           {/* Row Checkbox */}
-                          <td className="px-3 py-3 text-center">
+                          <td className="px-3.5 py-3.5 text-center align-top pt-4">
                             <input
                               type="checkbox"
                               checked={selectedAppIds.includes(app.id)}
@@ -1287,148 +1349,235 @@ export default function EduAdminPage() {
                               className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer h-4 w-4"
                             />
                           </td>
+
                           {/* Company & Preferred Location */}
-                          <td className="px-4 py-3">
-                            <div className="font-bold text-slate-900">{app.job_company}</div>
-                            <div className="text-slate-500 text-[11px]">{app.job_role}</div>
+                          <td className="px-4 py-3.5 align-top">
+                            <div className="font-bold text-slate-900 text-xs leading-snug" title={app.job_company}>
+                              {app.job_company}
+                            </div>
+                            <div className="text-slate-500 text-[11px] font-medium leading-tight mt-0.5">
+                              {app.job_role}
+                            </div>
                             {app.preferred_location && (
-                              <div className="mt-1 inline-flex items-center gap-1 rounded bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10.5px] font-semibold text-orange-700">
+                              <div
+                                className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-orange-50 border border-orange-200/90 px-2 py-0.5 text-[10.5px] font-bold text-orange-800 max-w-[220px]"
+                                title={`Preferred Location: ${app.preferred_location}`}
+                              >
                                 <MapPin className="h-2.5 w-2.5 text-orange-500 shrink-0" />
-                                <span>Pref: {app.preferred_location}</span>
+                                <span className="truncate">Pref: {app.preferred_location}</span>
                               </div>
                             )}
-                            <div className="text-slate-400 text-[10px] mt-0.5">
-                              {new Date(app.created_at).toLocaleDateString()} at{" "}
-                              {new Date(app.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            <div className="text-slate-400 text-[10px] flex items-center gap-1 mt-1 font-normal">
+                              <Calendar className="h-2.5 w-2.5 shrink-0" />
+                              <span>
+                                {new Date(app.created_at).toLocaleDateString()} at{" "}
+                                {new Date(app.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
                             </div>
                           </td>
 
                           {/* Candidate Name & Demographics */}
-                          <td className="px-4 py-3">
-                            <div className="font-bold text-slate-900 text-sm">{app.name}</div>
-                            <div className="text-slate-500 text-[11px]">
-                              {app.gender || "Not specified"} {app.dob ? `• DOB: ${app.dob}` : ""}
+                          <td className="px-4 py-3.5 align-top">
+                            <div className="flex items-start gap-2.5">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-bold text-[10.5px] shadow-2xs shrink-0 mt-0.5 uppercase">
+                                {app.name
+                                  ? app.name
+                                      .trim()
+                                      .split(/\s+/)
+                                      .map((n) => n[0])
+                                      .slice(0, 2)
+                                      .join("")
+                                  : "CA"}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingApp(app)}
+                                  className="font-bold text-slate-900 text-xs hover:text-orange-600 transition-colors flex items-center gap-1 text-left group cursor-pointer"
+                                  title="Click to view full candidate details"
+                                >
+                                  <span className="truncate max-w-[150px]">{app.name}</span>
+                                  <Eye className="h-3 w-3 text-slate-400 group-hover:text-orange-500 shrink-0 opacity-80" />
+                                </button>
+                                <div className="text-slate-500 text-[11px] mt-0.5">
+                                  {app.gender || "Unspecified"} {app.dob ? `• DOB: ${app.dob}` : ""}
+                                </div>
+                                <div
+                                  className="text-slate-400 text-[10.5px] truncate max-w-[170px] mt-0.5"
+                                  title={app.address}
+                                >
+                                  {app.address}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-slate-400 text-[11px] truncate max-w-xs">{app.address}</div>
                           </td>
 
                           {/* Contact Info */}
-                          <td className="px-3 py-3">
-                            <a
-                              href={`tel:${app.contact}`}
-                              className="font-semibold text-blue-600 hover:underline flex items-center gap-1"
-                            >
-                              <Phone className="h-3 w-3" /> {app.contact}
-                            </a>
+                          <td className="px-3.5 py-3.5 align-top">
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={`tel:${app.contact}`}
+                                className="font-semibold text-blue-600 hover:underline flex items-center gap-1 text-xs"
+                              >
+                                <Phone className="h-3 w-3 text-blue-500 shrink-0" /> {app.contact}
+                              </a>
+                              {(() => {
+                                const clean = app.contact.replace(/\D/g, "");
+                                const waPhone = clean.length === 10 ? `91${clean}` : clean;
+                                const waText = `Hello ${app.name}, this is regarding your job application for "${app.job_role}" at "${app.job_company}" via Trublend EduforCareer.`;
+                                return (
+                                  <a
+                                    href={`https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-600 hover:text-emerald-700 p-0.5 rounded hover:bg-emerald-50 transition-colors"
+                                    title="Chat on WhatsApp"
+                                  >
+                                    <MessageSquare className="h-3 w-3" />
+                                  </a>
+                                );
+                              })()}
+                            </div>
                             {app.email && (
                               <a
                                 href={`mailto:${app.email}`}
-                                className="text-slate-500 hover:text-slate-800 text-[11px] flex items-center gap-1 mt-0.5"
+                                className="text-slate-500 hover:text-slate-800 text-[11px] flex items-center gap-1 mt-1 truncate max-w-[160px]"
+                                title={app.email}
                               >
-                                <Mail className="h-3 w-3" /> {app.email}
+                                <Mail className="h-3 w-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{app.email}</span>
                               </a>
                             )}
                           </td>
 
                           {/* Qualification */}
-                          <td className="px-3 py-3">
-                            <span className="font-bold text-slate-800">{app.qualification}</span>
-                            {app.trade && <div className="text-slate-500 text-[11px]">{app.trade}</div>}
+                          <td className="px-3.5 py-3.5 align-top">
+                            <span className="inline-block rounded-md bg-purple-50 border border-purple-200/80 px-2 py-0.5 font-bold text-[11px] text-purple-900">
+                              {app.qualification}
+                            </span>
+                            {app.trade && (
+                              <div className="text-slate-600 text-[11px] font-medium mt-1">
+                                {app.trade}
+                              </div>
+                            )}
                           </td>
 
                           {/* Document Links */}
-                          <td className="px-3 py-3">
-                            <div className="flex flex-col gap-1">
+                          <td className="px-3.5 py-3.5 align-top">
+                            <div className="flex flex-col gap-1 items-start">
                               {app.resume_url ? (
                                 <a
                                   href={app.resume_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline"
+                                  className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-blue-700 hover:underline bg-blue-50/80 hover:bg-blue-100 border border-blue-200/70 px-1.5 py-0.5 rounded transition-colors"
                                 >
-                                  <FileText className="h-3 w-3 text-blue-500" /> Resume
+                                  <FileText className="h-3 w-3 text-blue-500 shrink-0" /> Resume
                                 </a>
-                              ) : (
-                                <span className="text-slate-400 text-[11px]">No Resume</span>
-                              )}
+                              ) : null}
 
                               {app.marks_card_url ? (
                                 <a
                                   href={app.marks_card_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:underline"
+                                  className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-emerald-700 hover:underline bg-emerald-50/80 hover:bg-emerald-100 border border-emerald-200/70 px-1.5 py-0.5 rounded transition-colors"
                                 >
-                                  <GraduationCap className="h-3 w-3 text-emerald-500" /> Marks Card
+                                  <GraduationCap className="h-3 w-3 text-emerald-500 shrink-0" /> Marks Card
                                 </a>
-                              ) : (
-                                <span className="text-slate-400 text-[11px]">No Marks Card</span>
-                              )}
+                              ) : null}
 
-                              {app.additional_doc_url && (
+                              {app.additional_doc_url ? (
                                 <a
                                   href={app.additional_doc_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-600 hover:underline"
+                                  className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-purple-700 hover:underline bg-purple-50/80 hover:bg-purple-100 border border-purple-200/70 px-1.5 py-0.5 rounded transition-colors"
                                 >
-                                  <Paperclip className="h-3 w-3 text-purple-500" /> Additional Doc
+                                  <Paperclip className="h-3 w-3 text-purple-500 shrink-0" /> Addl Doc
                                 </a>
+                              ) : null}
+
+                              {/* Duplicate Document Warning Badge in Table */}
+                              {Boolean(
+                                (app.resume_url && app.marks_card_url && (app.resume_url === app.marks_card_url || app.resume_url.split("/").pop()?.split("?")[0] === app.marks_card_url.split("/").pop()?.split("?")[0])) ||
+                                (app.resume_url && app.additional_doc_url && (app.resume_url === app.additional_doc_url || app.resume_url.split("/").pop()?.split("?")[0] === app.additional_doc_url.split("/").pop()?.split("?")[0])) ||
+                                (app.marks_card_url && app.additional_doc_url && (app.marks_card_url === app.additional_doc_url || app.marks_card_url.split("/").pop()?.split("?")[0] === app.additional_doc_url.split("/").pop()?.split("?")[0]))
+                              ) && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[9.5px] font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded"
+                                  title="Duplicate document detected across uploaded fields"
+                                >
+                                  <AlertCircle className="h-2.5 w-2.5 text-amber-600 shrink-0" /> Duplicate File
+                                </span>
+                              )}
+
+                              {!app.resume_url && !app.marks_card_url && !app.additional_doc_url && (
+                                <span className="text-slate-400 text-[10.5px] italic">No docs</span>
                               )}
                             </div>
                           </td>
 
                           {/* Status */}
-                          <td className="px-3 py-3 text-center">
+                          <td className="px-3 py-3.5 align-top text-center">
                             <span
-                              className={`inline-block rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
+                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold border ${
                                 app.status === "Shortlisted"
-                                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                                   : app.status === "Contacted"
-                                  ? "bg-blue-100 text-blue-800 border-blue-300"
+                                  ? "bg-blue-50 text-blue-800 border-blue-200"
                                   : app.status === "Rejected"
-                                  ? "bg-rose-100 text-rose-800 border-rose-300"
-                                  : "bg-slate-100 text-slate-700 border-slate-300"
+                                  ? "bg-rose-50 text-rose-800 border-rose-200"
+                                  : "bg-amber-50 text-amber-800 border-amber-200"
                               }`}
                             >
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
                               {app.status}
                             </span>
                           </td>
 
                           {/* Quick Status Action Buttons & Delete */}
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
+                          <td className="px-4 py-3.5 align-top text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setViewingApp(app)}
+                                className="rounded-md bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                title="View full candidate details and documents in popup"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                View
+                              </button>
                               <button
                                 onClick={() => handleStatusChange(app.id, "Shortlisted")}
-                                className="rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
+                                className="rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Shortlist candidate"
                               >
                                 Shortlist
                               </button>
                               <button
                                 onClick={() => handleStatusChange(app.id, "Contacted")}
-                                className="rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
+                                className="rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Mark as Contacted"
                               >
                                 Contact
                               </button>
                               <button
                                 onClick={() => handleStatusChange(app.id, "Rejected")}
-                                className="rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
+                                className="rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Reject candidate"
                               >
                                 Reject
                               </button>
                               <button
                                 onClick={() => handleStatusChange(app.id, "Pending")}
-                                className="rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
+                                className="rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-1.5 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Reset status to Pending"
                               >
                                 Reset
                               </button>
                               <button
                                 onClick={() => handleDeleteApplication(app)}
-                                className="rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 p-1 text-[11px] font-bold transition-colors ml-1 cursor-pointer"
+                                className="rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 p-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Permanently delete application"
                               >
                                 <Trash2 className="h-3.5 w-3.5 text-rose-600" />
@@ -2145,6 +2294,675 @@ export default function EduAdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CANDIDATE FULL DETAILS VIEW MODAL (POPUP) */}
+      {viewingApp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-3 sm:p-5 backdrop-blur-xs overflow-y-auto"
+          data-lenis-prevent
+        >
+          <div className="relative w-full max-w-4xl rounded-2xl bg-white shadow-2xl my-6 border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 font-black text-white text-lg sm:text-xl shadow-md uppercase shrink-0">
+                    {viewingApp.name
+                      ? viewingApp.name
+                          .trim()
+                          .split(/\s+/)
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join("")
+                      : "CA"}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                        {viewingApp.name}
+                      </h3>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-bold border ${
+                          viewingApp.status === "Shortlisted"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : viewingApp.status === "Contacted"
+                            ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                            : viewingApp.status === "Rejected"
+                            ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        }`}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                        {viewingApp.status}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-300 mt-1">
+                      <span className="flex items-center gap-1 font-semibold text-orange-400">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {viewingApp.job_company}
+                      </span>
+                      <span>•</span>
+                      <span className="text-slate-200">{viewingApp.job_role}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <Clock className="h-3 w-3" />
+                        {new Date(viewingApp.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}{" "}
+                        at{" "}
+                        {new Date(viewingApp.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                    title="Print Candidate Summary"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteApplication(viewingApp)}
+                    className="rounded-lg p-2 text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors cursor-pointer"
+                    title="Delete Application"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingApp(null)}
+                    className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                    title="Close Dialog"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Communication & Actions Bar inside Header */}
+              <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+                {/* 1-Click Communication buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={`tel:${viewingApp.contact}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 shadow-sm transition-colors cursor-pointer"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    Call {viewingApp.contact}
+                  </a>
+
+                  {(() => {
+                    const clean = viewingApp.contact.replace(/\D/g, "");
+                    const waPhone = clean.length === 10 ? `91${clean}` : clean;
+                    const waText = `Hello ${viewingApp.name}, this is regarding your job application for "${viewingApp.job_role}" at "${viewingApp.job_company}" via Trublend EduforCareer.`;
+                    return (
+                      <a
+                        href={`https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366] hover:bg-[#20BD5A] text-white font-bold px-3 py-1.5 shadow-sm transition-colors cursor-pointer"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        WhatsApp
+                      </a>
+                    );
+                  })()}
+
+                  {viewingApp.email && (
+                    <a
+                      href={`mailto:${viewingApp.email}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 shadow-sm transition-colors cursor-pointer"
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      Email
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(viewingApp.contact);
+                      toast.success(`Copied phone ${viewingApp.contact} to clipboard`);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 px-2.5 py-1.5 font-medium transition-colors cursor-pointer"
+                    title="Copy Phone Number"
+                  >
+                    <Copy className="h-3 w-3" />
+                    Copy No.
+                  </button>
+                </div>
+
+                {/* Quick Status Decision Buttons */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400 font-semibold mr-1 hidden sm:inline">Decision:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(viewingApp.id, "Shortlisted")}
+                    className={`rounded-md px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                      viewingApp.status === "Shortlisted"
+                        ? "bg-emerald-500 text-white ring-2 ring-emerald-300"
+                        : "bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/30"
+                    }`}
+                  >
+                    Shortlist
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(viewingApp.id, "Contacted")}
+                    className={`rounded-md px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                      viewingApp.status === "Contacted"
+                        ? "bg-blue-500 text-white ring-2 ring-blue-300"
+                        : "bg-blue-950/60 hover:bg-blue-900 text-blue-300 border border-blue-500/30"
+                    }`}
+                  >
+                    Contact
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(viewingApp.id, "Rejected")}
+                    className={`rounded-md px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                      viewingApp.status === "Rejected"
+                        ? "bg-rose-500 text-white ring-2 ring-rose-300"
+                        : "bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30"
+                    }`}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(viewingApp.id, "Pending")}
+                    className={`rounded-md px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                      viewingApp.status === "Pending"
+                        ? "bg-slate-200 text-slate-900 ring-2 ring-white"
+                        : "bg-white/10 hover:bg-white/20 text-slate-300"
+                    }`}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="max-h-[calc(85vh-150px)] overflow-y-auto p-5 sm:p-6 space-y-5 text-slate-800">
+              {/* 2-Column Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* CARD 1: Applied Hiring Drive Details */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <Briefcase className="h-3.5 w-3.5 text-orange-500" />
+                      Applied Recruitment Drive
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
+                      ID: {viewingApp.id.slice(0, 8)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-lg border border-slate-200 bg-white p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                      {COMPANY_LOGOS[viewingApp.job_company] ? (
+                        <img
+                          src={COMPANY_LOGOS[viewingApp.job_company]}
+                          alt={viewingApp.job_company}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="h-6 w-6 text-slate-400" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm leading-snug">
+                        {viewingApp.job_company}
+                      </div>
+                      <div className="text-xs text-slate-600 mt-0.5 font-medium">
+                        {viewingApp.job_role}
+                      </div>
+                      {viewingApp.preferred_location && (
+                        <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-orange-100/70 border border-orange-200 px-2 py-0.5 text-[11px] font-bold text-orange-800">
+                          <MapPin className="h-3 w-3 text-orange-600 shrink-0" />
+                          <span>Preferred Location: {viewingApp.preferred_location}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CARD 2: Candidate Demographics */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-blue-500" />
+                      Candidate Profile
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      {viewingApp.gender || "Gender Unspecified"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="block text-slate-400 text-[11px]">Full Name</span>
+                      <span className="font-bold text-slate-900 text-sm">{viewingApp.name}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-400 text-[11px]">Date of Birth & Age</span>
+                      <span className="font-bold text-slate-900">
+                        {viewingApp.dob || "Not provided"}
+                        {calculateCandidateAge(viewingApp.dob) && (
+                          <span className="text-slate-500 font-normal ml-1">
+                            ({calculateCandidateAge(viewingApp.dob)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="block text-slate-400 text-[11px]">Residential Address</span>
+                      <span className="font-medium text-slate-800 leading-relaxed">
+                        {viewingApp.address || "Not provided"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CARD 3: Contact & Communication */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-emerald-500" />
+                      Contact Information
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Mobile Phone:</span>
+                      <a
+                        href={`tel:${viewingApp.contact}`}
+                        className="font-bold text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <Phone className="h-3 w-3" /> {viewingApp.contact}
+                      </a>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Email Address:</span>
+                      {viewingApp.email ? (
+                        <a
+                          href={`mailto:${viewingApp.email}`}
+                          className="font-bold text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Mail className="h-3 w-3" /> {viewingApp.email}
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic">Not provided</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CARD 4: Academic & Technical Qualification */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <GraduationCap className="h-3.5 w-3.5 text-purple-500" />
+                      Academic & Technical Qualification
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="block text-slate-400 text-[11px]">Qualification</span>
+                      <span className="inline-block mt-0.5 rounded-md bg-purple-50 border border-purple-200 px-2.5 py-1 text-xs font-bold text-purple-900">
+                        {viewingApp.qualification || "Unspecified"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-400 text-[11px]">Trade / Discipline</span>
+                      <span className="inline-block mt-0.5 rounded-md bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-bold text-slate-800">
+                        {viewingApp.trade || "Any Trade"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 5: Candidate Uploaded Documents (Full Large View) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-orange-500" />
+                      Candidate Uploaded Documents & Verifications
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Review resume, marks cards, and certificates submitted by the candidate during application.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Duplicate Document Detection Alert for Admin */}
+                {(() => {
+                  const docs = [
+                    { name: "Resume", url: viewingApp.resume_url },
+                    { name: "Marks Card", url: viewingApp.marks_card_url },
+                    { name: "Additional Doc", url: viewingApp.additional_doc_url },
+                  ].filter((d): d is { name: string; url: string } => Boolean(d.url));
+
+                  const duplicates: string[] = [];
+                  for (let i = 0; i < docs.length; i++) {
+                    for (let j = i + 1; j < docs.length; j++) {
+                      const fileA = docs[i].url.split("/").pop()?.split("?")[0];
+                      const fileB = docs[j].url.split("/").pop()?.split("?")[0];
+                      if (docs[i].url === docs[j].url || (fileA && fileB && fileA === fileB)) {
+                        duplicates.push(`${docs[i].name} & ${docs[j].name}`);
+                      }
+                    }
+                  }
+
+                  if (duplicates.length === 0) return null;
+
+                  return (
+                    <div className="rounded-lg bg-amber-50 border border-amber-200/90 p-2.5 flex items-start gap-2.5 text-xs text-amber-800">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="font-bold">Duplicate Document Warning:</strong> The candidate uploaded the identical file across {duplicates.join(", ")}. Please request their distinct original marks card / ID proof before final onboarding.
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+                  {/* Document 1: Resume */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                          <FileText className="h-4 w-4 text-blue-600" />
+                          Resume / CV
+                        </span>
+                        {viewingApp.resume_url ? (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                            <Check className="h-2.5 w-2.5" /> Uploaded
+                          </span>
+                        ) : (
+                          <span className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                            Not Attached
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Image Preview Thumbnail if available */}
+                      {viewingApp.resume_url && isImageDoc(viewingApp.resume_url) ? (
+                        <div
+                          onClick={() => setPreviewDocUrl(viewingApp.resume_url)}
+                          className="relative group h-32 rounded-lg border border-slate-200 bg-white overflow-hidden mb-3 cursor-pointer flex items-center justify-center shadow-2xs"
+                          title="Click to view full image"
+                        >
+                          <img
+                            src={viewingApp.resume_url}
+                            alt="Resume Preview"
+                            className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                            <Eye className="h-4 w-4" /> Expand Preview
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-20 rounded-lg border border-dashed border-slate-200 bg-white/70 flex items-center justify-center text-slate-400 text-xs mb-3">
+                          {viewingApp.resume_url ? "Document File (PDF / Doc)" : "No Resume Uploaded"}
+                        </div>
+                      )}
+                    </div>
+
+                    {viewingApp.resume_url ? (
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200/70">
+                        <a
+                          href={viewingApp.resume_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 text-xs transition-colors shadow-2xs"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Open Resume
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 text-center block pt-2 border-t border-slate-200/50">
+                        Candidate did not attach resume
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Document 2: Marks Card */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                          <GraduationCap className="h-4 w-4 text-emerald-600" />
+                          Marks Card
+                        </span>
+                        {viewingApp.marks_card_url ? (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                            <Check className="h-2.5 w-2.5" /> Uploaded
+                          </span>
+                        ) : (
+                          <span className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                            Not Attached
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Image Preview Thumbnail if available */}
+                      {viewingApp.marks_card_url && isImageDoc(viewingApp.marks_card_url) ? (
+                        <div
+                          onClick={() => setPreviewDocUrl(viewingApp.marks_card_url)}
+                          className="relative group h-32 rounded-lg border border-slate-200 bg-white overflow-hidden mb-3 cursor-pointer flex items-center justify-center shadow-2xs"
+                          title="Click to view full image"
+                        >
+                          <img
+                            src={viewingApp.marks_card_url}
+                            alt="Marks Card Preview"
+                            className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                            <Eye className="h-4 w-4" /> Expand Preview
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-20 rounded-lg border border-dashed border-slate-200 bg-white/70 flex items-center justify-center text-slate-400 text-xs mb-3">
+                          {viewingApp.marks_card_url ? "Document File (PDF / Doc)" : "No Marks Card Uploaded"}
+                        </div>
+                      )}
+                    </div>
+
+                    {viewingApp.marks_card_url ? (
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200/70">
+                        <a
+                          href={viewingApp.marks_card_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 text-xs transition-colors shadow-2xs"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Open Marks Card
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 text-center block pt-2 border-t border-slate-200/50">
+                        Candidate did not attach marks card
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Document 3: Additional Document */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                          <Paperclip className="h-4 w-4 text-purple-600" />
+                          Additional Certificate / ID
+                        </span>
+                        {viewingApp.additional_doc_url ? (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                            <Check className="h-2.5 w-2.5" /> Uploaded
+                          </span>
+                        ) : (
+                          <span className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                            Not Attached
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Image Preview Thumbnail if available */}
+                      {viewingApp.additional_doc_url && isImageDoc(viewingApp.additional_doc_url) ? (
+                        <div
+                          onClick={() => setPreviewDocUrl(viewingApp.additional_doc_url)}
+                          className="relative group h-32 rounded-lg border border-slate-200 bg-white overflow-hidden mb-3 cursor-pointer flex items-center justify-center shadow-2xs"
+                          title="Click to view full image"
+                        >
+                          <img
+                            src={viewingApp.additional_doc_url}
+                            alt="Additional Doc Preview"
+                            className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                            <Eye className="h-4 w-4" /> Expand Preview
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-20 rounded-lg border border-dashed border-slate-200 bg-white/70 flex items-center justify-center text-slate-400 text-xs mb-3">
+                          {viewingApp.additional_doc_url ? "Document File (PDF / Doc)" : "No Additional Doc"}
+                        </div>
+                      )}
+                    </div>
+
+                    {viewingApp.additional_doc_url ? (
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200/70">
+                        <a
+                          href={viewingApp.additional_doc_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold py-1.5 text-xs transition-colors shadow-2xs"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Open Additional Doc
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 text-center block pt-2 border-t border-slate-200/50">
+                        Candidate did not attach extra doc
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 6: Internal Admin Notes & Evaluation */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Edit className="h-3.5 w-3.5 text-orange-500" />
+                    Internal Recruitment & Interview Notes
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    Saved privately for EduAdmin recruitment staff
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <textarea
+                    rows={2}
+                    value={appNotesInput}
+                    onChange={(e) => setAppNotesInput(e.target.value)}
+                    placeholder="e.g. Spoke on 28th Oct: Candidate is ready to join immediately for Tumkur drive; needs hostel assistance."
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={isSavingNotes}
+                    onClick={handleSaveAppNotes}
+                    className="rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-2 text-xs flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingNotes ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5 text-orange-400" />
+                    )}
+                    Save Note
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-slate-100 p-4 bg-slate-50 flex items-center justify-between">
+              <div className="text-xs text-slate-500 flex items-center gap-2">
+                <span>Application ID: <strong className="font-mono text-slate-700">{viewingApp.id}</strong></span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingApp(null)}
+                className="rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 text-xs transition-colors cursor-pointer"
+              >
+                Done Viewing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DOCUMENT HIGH-RES LIGHTBOX PREVIEW MODAL */}
+      {previewDocUrl && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-md"
+          onClick={() => setPreviewDocUrl(null)}
+          data-lenis-prevent
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-3 border-b border-slate-100">
+              <span className="text-xs font-bold text-slate-800">Document Verification Preview</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewDocUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 text-xs font-bold flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3 w-3" /> Open in New Tab
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDocUrl(null)}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[75vh] overflow-auto flex items-center justify-center p-3 bg-slate-900/5">
+              <img
+                src={previewDocUrl}
+                alt="Document Full Preview"
+                className="max-h-[70vh] max-w-full object-contain rounded"
+              />
+            </div>
           </div>
         </div>
       )}

@@ -733,6 +733,31 @@ interface ApplyModalProps {
   onClose: () => void;
 }
 
+// Helper to detect if two candidate files are duplicates (same size & fingerprint/content)
+async function checkFilesIdentical(fileA: File | null, fileB: File | null): Promise<boolean> {
+  if (!fileA || !fileB) return false;
+  // If size differs, files are definitely different
+  if (fileA.size !== fileB.size) return false;
+
+  // If size, name and last modified match, definitely identical
+  if (fileA.name === fileB.name && fileA.lastModified === fileB.lastModified) return true;
+
+  // Even if renamed by candidate, compare first 16KB of file bytes to detect duplicate content
+  try {
+    const chunkA = await fileA.slice(0, Math.min(fileA.size, 16384)).arrayBuffer();
+    const chunkB = await fileB.slice(0, Math.min(fileB.size, 16384)).arrayBuffer();
+    const viewA = new Uint8Array(chunkA);
+    const viewB = new Uint8Array(chunkB);
+    if (viewA.length !== viewB.length) return false;
+    for (let i = 0; i < viewA.length; i++) {
+      if (viewA[i] !== viewB[i]) return false;
+    }
+    return true;
+  } catch {
+    return fileA.name === fileB.name && fileA.size === fileB.size;
+  }
+}
+
 function ApplyModal({ job, onClose }: ApplyModalProps) {
   // Parse locations: e.g. "Bangalore & Chennai" -> ["Bangalore", "Chennai"]
   const availableLocations = useMemo(() => {
@@ -771,24 +796,56 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "resume" | "markscard" | "additional") => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "resume" | "markscard" | "additional") => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error(`"${file.name}" exceeds 2MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a document under 2MB.`);
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(`"${file.name}" exceeds 2MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a document under 2MB.`);
+      e.target.value = "";
+      return;
+    }
+
+    // Proactive check: Prevent selecting duplicate documents across fields
+    if (type === "resume") {
+      if (marksCardFile && (await checkFilesIdentical(file, marksCardFile))) {
+        toast.error(`Duplicate File Blocked: "${file.name}" has already been attached as your Marks Card. Please select your actual Resume.`);
         e.target.value = "";
         return;
       }
-      if (type === "resume") {
-        setResumeFile(file);
-        toast.success(`Resume "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
-      } else if (type === "markscard") {
-        setMarksCardFile(file);
-        toast.success(`Marks Card "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
-      } else {
-        setAdditionalDocFile(file);
-        toast.success(`Additional document "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
+      if (additionalDocFile && (await checkFilesIdentical(file, additionalDocFile))) {
+        toast.error(`Duplicate File Blocked: "${file.name}" has already been attached as your Additional Document. Please select your actual Resume.`);
+        e.target.value = "";
+        return;
       }
+      setResumeFile(file);
+      toast.success(`Resume "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
+    } else if (type === "markscard") {
+      if (resumeFile && (await checkFilesIdentical(file, resumeFile))) {
+        toast.error(`Duplicate File Blocked: "${file.name}" has already been attached as your Resume. Please select your actual Marks Card / Certificate.`);
+        e.target.value = "";
+        return;
+      }
+      if (additionalDocFile && (await checkFilesIdentical(file, additionalDocFile))) {
+        toast.error(`Duplicate File Blocked: "${file.name}" has already been attached as your Additional Document. Please select your actual Marks Card.`);
+        e.target.value = "";
+        return;
+      }
+      setMarksCardFile(file);
+      toast.success(`Marks Card "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
+    } else {
+      if (resumeFile && (await checkFilesIdentical(file, resumeFile))) {
+        toast.error(`Duplicate File Blocked: "${file.name}" is identical to your Resume. Please upload a separate ID proof or leave this optional field empty.`);
+        e.target.value = "";
+        return;
+      }
+      if (marksCardFile && (await checkFilesIdentical(file, marksCardFile))) {
+        toast.error(`Duplicate File Blocked: "${file.name}" is identical to your Marks Card. Please upload a separate ID proof or leave this optional field empty.`);
+        e.target.value = "";
+        return;
+      }
+      setAdditionalDocFile(file);
+      toast.success(`Additional document "${file.name}" attached (${(file.size / 1024).toFixed(0)} KB).`);
     }
   };
 
@@ -848,7 +905,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
     }
 
     if (!resumeFile) {
-      toast.error("Resume / Bio-Data is mandatory. Please upload your document (under 2MB).");
+      toast.error("Resume is mandatory. Please upload your document (under 2MB).");
       return;
     }
 
@@ -869,6 +926,20 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
 
     if (additionalDocFile && additionalDocFile.size > 2 * 1024 * 1024) {
       toast.error(`Additional document "${additionalDocFile.name}" exceeds 2MB limit. Please upload a smaller file.`);
+      return;
+    }
+
+    // Safety verification: Ensure candidate hasn't bypassed duplicate checks
+    if (resumeFile && marksCardFile && (await checkFilesIdentical(resumeFile, marksCardFile))) {
+      toast.error("Duplicate Document Error: Resume and Marks Card cannot be the identical file. Please upload your genuine Marks Card.");
+      return;
+    }
+    if (resumeFile && additionalDocFile && (await checkFilesIdentical(resumeFile, additionalDocFile))) {
+      toast.error("Duplicate Document Error: Additional Document cannot be identical to your Resume.");
+      return;
+    }
+    if (marksCardFile && additionalDocFile && (await checkFilesIdentical(marksCardFile, additionalDocFile))) {
+      toast.error("Duplicate Document Error: Additional Document cannot be identical to your Marks Card.");
       return;
     }
 
@@ -1165,7 +1236,7 @@ function ApplyModal({ job, onClose }: ApplyModalProps) {
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-orange-500" />
                       <label className="text-xs font-bold text-slate-800">
-                        Resume / Bio-Data <span className="text-red-500">*</span>
+                        Resume <span className="text-red-500">*</span>
                       </label>
                     </div>
                     <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
