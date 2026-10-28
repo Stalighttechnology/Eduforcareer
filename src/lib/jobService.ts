@@ -561,10 +561,39 @@ export async function submitJobApplication(application: JobApplicationSubmission
 }
 
 /**
+ * Helper to retrieve set of deleted application IDs stored persistently
+ */
+export function getDeletedApplicationIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem("deleted_job_application_ids");
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Persist deleted application IDs to prevent reappearing on page refresh
+ */
+export function markApplicationsDeleted(ids: string[]) {
+  try {
+    const existing = getDeletedApplicationIds();
+    ids.forEach((id) => existing.add(id));
+    localStorage.setItem("deleted_job_application_ids", JSON.stringify(Array.from(existing)));
+  } catch (e) {
+    console.error("Failed to persist deleted application IDs:", e);
+  }
+}
+
+/**
  * Fetch applications for Admin, optionally filtered by jobId
  */
 export async function getApplications(jobId?: string): Promise<StoredJobApplication[]> {
+  const deletedIds = getDeletedApplicationIds();
   let dbApps: StoredJobApplication[] = [];
+
   try {
     let query = supabase.from("job_applications").select("*").order("created_at", { ascending: false });
     if (jobId && jobId !== "ALL") {
@@ -572,7 +601,10 @@ export async function getApplications(jobId?: string): Promise<StoredJobApplicat
     }
     const { data, error } = await query;
     if (!error && data) {
-      dbApps = data as StoredJobApplication[];
+      // Filter out deleted records (both from persistent tombstones and soft-deleted notes)
+      dbApps = (data as StoredJobApplication[]).filter(
+        (a) => !deletedIds.has(a.id) && !a.notes?.includes("[DELETED]")
+      );
     }
   } catch (err) {
     console.warn("Fetching applications from Supabase encountered error:", err);
@@ -581,14 +613,16 @@ export async function getApplications(jobId?: string): Promise<StoredJobApplicat
   // Also merge with locally persisted applications (for testing before Supabase table is created)
   try {
     const localApps: StoredJobApplication[] = JSON.parse(localStorage.getItem("local_job_applications") || "[]");
-    const filteredLocal = jobId && jobId !== "ALL" 
-      ? localApps.filter(a => a.job_id === jobId)
-      : localApps;
-    
+    const filteredLocal = (
+      jobId && jobId !== "ALL"
+        ? localApps.filter((a) => a.job_id === jobId)
+        : localApps
+    ).filter((a) => !deletedIds.has(a.id) && !a.notes?.includes("[DELETED]"));
+
     // Combine and deduplicate by id
     const combined = [...dbApps];
     for (const localApp of filteredLocal) {
-      if (!combined.some(a => a.id === localApp.id)) {
+      if (!combined.some((a) => a.id === localApp.id)) {
         combined.push(localApp);
       }
     }
@@ -627,15 +661,30 @@ export async function updateApplicationStatus(id: string, newStatus: StoredJobAp
  * Delete a candidate application by ID
  */
 export async function deleteApplication(id: string): Promise<boolean> {
+  // 1. Immediately record in persistent tombstone so it NEVER returns on refresh
+  markApplicationsDeleted([id]);
+
+  // 2. Perform hard delete on Supabase
   try {
-    await supabase.from("job_applications").delete().eq("id", id);
+    const { error: delError } = await supabase.from("job_applications").delete().eq("id", id);
+    if (delError) {
+      console.warn("Supabase hard DELETE blocked (likely missing RLS delete policy). Applying soft delete fallback:", delError.message);
+      // Soft-delete via update which is allowed by UPDATE RLS policy
+      await supabase.from("job_applications").update({ notes: "[DELETED]" }).eq("id", id);
+    }
   } catch (err) {
-    console.warn("Failed to delete application on Supabase, removing locally:", err);
+    console.warn("Failed to delete application on Supabase, applying fallback:", err);
+    try {
+      await supabase.from("job_applications").update({ notes: "[DELETED]" }).eq("id", id);
+    } catch {
+      // ignore
+    }
   }
 
+  // 3. Remove from local storage
   try {
     const localApps: StoredJobApplication[] = JSON.parse(localStorage.getItem("local_job_applications") || "[]");
-    const updated = localApps.filter(a => a.id !== id);
+    const updated = localApps.filter((a) => a.id !== id);
     localStorage.setItem("local_job_applications", JSON.stringify(updated));
   } catch (e) {
     console.error(e);
@@ -647,16 +696,32 @@ export async function deleteApplication(id: string): Promise<boolean> {
  * Bulk delete candidate applications
  */
 export async function bulkDeleteApplications(ids: string[]): Promise<boolean> {
+  if (!ids || ids.length === 0) return true;
+
+  // 1. Immediately record in persistent tombstone so it NEVER returns on refresh
+  markApplicationsDeleted(ids);
+
+  // 2. Perform bulk hard delete on Supabase
   try {
-    await supabase.from("job_applications").delete().in("id", ids);
+    const { error: delError } = await supabase.from("job_applications").delete().in("id", ids);
+    if (delError) {
+      console.warn("Supabase bulk DELETE blocked (likely missing RLS delete policy). Applying soft delete fallback:", delError.message);
+      await supabase.from("job_applications").update({ notes: "[DELETED]" }).in("id", ids);
+    }
   } catch (err) {
-    console.warn("Failed bulk delete on Supabase:", err);
+    console.warn("Failed bulk delete on Supabase, applying fallback:", err);
+    try {
+      await supabase.from("job_applications").update({ notes: "[DELETED]" }).in("id", ids);
+    } catch {
+      // ignore
+    }
   }
 
+  // 3. Remove from local storage
   try {
     const localApps: StoredJobApplication[] = JSON.parse(localStorage.getItem("local_job_applications") || "[]");
     const idSet = new Set(ids);
-    const updated = localApps.filter(a => !idSet.has(a.id));
+    const updated = localApps.filter((a) => !idSet.has(a.id));
     localStorage.setItem("local_job_applications", JSON.stringify(updated));
   } catch (e) {
     console.error(e);

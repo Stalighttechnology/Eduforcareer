@@ -71,6 +71,11 @@ create policy "Allow read applications" on public.job_applications
 create policy "Allow update applications" on public.job_applications
   for update using (true);
 
+-- Allow delete applications (Admin control)
+drop policy if exists "Allow delete applications" on public.job_applications;
+create policy "Allow delete applications" on public.job_applications
+  for delete using (true);
+
 -- =================================================================
 -- 4. STORAGE BUCKET FOR RESUMES AND MARKS CARDS
 -- Run in Supabase SQL editor or create 'job-documents' in Storage UI:
