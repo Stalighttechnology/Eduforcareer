@@ -40,7 +40,8 @@ import {
   Printer,
   Copy,
   MessageSquare,
-  Share2
+  Share2,
+  Upload
 } from "lucide-react";
 import brandLogo from "@/assets/trublendeduforcarrier.png";
 import { supabase } from "@/lib/supabase";
@@ -49,6 +50,7 @@ import {
   StoredJobApplication,
   getApplications,
   updateApplicationStatus,
+  updateJobApplication,
   deleteApplication,
   bulkDeleteApplications,
   bulkUpdateApplicationStatus,
@@ -207,6 +209,58 @@ export default function EduAdminPage() {
   const [appNotesInput, setAppNotesInput] = useState<string>("");
   const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+
+  // State for Candidate Application Edit Modal
+  const [editingApp, setEditingApp] = useState<StoredJobApplication | null>(null);
+  const [candidateEditForm, setCandidateEditForm] = useState<{
+    name: string;
+    contact: string;
+    email: string;
+    dob: string;
+    gender: string;
+    address: string;
+    qualification: string;
+    trade: string;
+    job_id: string;
+    job_company: string;
+    job_role: string;
+    preferred_location: string;
+    status: StoredJobApplication["status"];
+    notes: string;
+    resume_url: string | null;
+    marks_card_url: string | null;
+    additional_doc_url: string | null;
+  }>({
+    name: "",
+    contact: "",
+    email: "",
+    dob: "",
+    gender: "Male",
+    address: "",
+    qualification: "",
+    trade: "",
+    job_id: "",
+    job_company: "",
+    job_role: "",
+    preferred_location: "",
+    status: "Pending",
+    notes: "",
+    resume_url: null,
+    marks_card_url: null,
+    additional_doc_url: null,
+  });
+
+  const [candidateFiles, setCandidateFiles] = useState<{
+    resumeFile: File | null;
+    marksCardFile: File | null;
+    additionalDocFile: File | null;
+  }>({
+    resumeFile: null,
+    marksCardFile: null,
+    additionalDocFile: null,
+  });
+
+  const [isSavingCandidate, setIsSavingCandidate] = useState<boolean>(false);
 
   // Sync notes when viewing a candidate
   useEffect(() => {
@@ -501,6 +555,98 @@ export default function EduAdminPage() {
       toast.error("Failed to save candidate notes.");
     } finally {
       setIsSavingNotes(false);
+    }
+  };
+
+  // Open Candidate Edit Modal with Pre-filled Data
+  const handleOpenEditCandidate = (app: StoredJobApplication) => {
+    setEditingApp(app);
+    setCandidateEditForm({
+      name: app.name || "",
+      contact: app.contact || "",
+      email: app.email || "",
+      dob: app.dob || "",
+      gender: app.gender || "Male",
+      address: app.address || "",
+      qualification: app.qualification || "",
+      trade: app.trade || "",
+      job_id: app.job_id || "",
+      job_company: app.job_company || "",
+      job_role: app.job_role || "",
+      preferred_location: app.preferred_location || "",
+      status: app.status || "Pending",
+      notes: app.notes || "",
+      resume_url: app.resume_url || null,
+      marks_card_url: app.marks_card_url || null,
+      additional_doc_url: app.additional_doc_url || null,
+    });
+    setCandidateFiles({
+      resumeFile: null,
+      marksCardFile: null,
+      additionalDocFile: null,
+    });
+  };
+
+  // Save Candidate Edits & Document Replacements
+  const handleSaveCandidateEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingApp) return;
+
+    if (!candidateEditForm.name.trim()) {
+      toast.error("Candidate full name is required.");
+      return;
+    }
+
+    const cleanPhone = candidateEditForm.contact.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      toast.error("Please enter a valid 10-digit mobile phone number.");
+      return;
+    }
+
+    setIsSavingCandidate(true);
+    try {
+      const updated = await updateJobApplication(
+        editingApp.id,
+        {
+          name: candidateEditForm.name.trim(),
+          contact: cleanPhone,
+          email: candidateEditForm.email.trim() || null,
+          dob: candidateEditForm.dob || null,
+          gender: candidateEditForm.gender || null,
+          address: candidateEditForm.address.trim(),
+          qualification: candidateEditForm.qualification.trim(),
+          trade: candidateEditForm.trade?.trim() || null,
+          job_id: candidateEditForm.job_id || editingApp.job_id,
+          job_company: candidateEditForm.job_company || editingApp.job_company,
+          job_role: candidateEditForm.job_role || editingApp.job_role,
+          preferred_location: candidateEditForm.preferred_location?.trim() || null,
+          status: candidateEditForm.status,
+          notes: candidateEditForm.notes || null,
+          resume_url: candidateEditForm.resume_url,
+          marks_card_url: candidateEditForm.marks_card_url,
+          additional_doc_url: candidateEditForm.additional_doc_url,
+        },
+        candidateFiles
+      );
+
+      // Update state in applications list
+      setApplications((prev) =>
+        prev.map((a) => (a.id === updated.id ? updated : a))
+      );
+
+      // If view modal was open for this candidate, update viewingApp too
+      if (viewingApp && viewingApp.id === updated.id) {
+        setViewingApp(updated);
+        setAppNotesInput(updated.notes || "");
+      }
+
+      setEditingApp(null);
+      toast.success(`Candidate details for "${updated.name}" updated successfully!`);
+    } catch (err: any) {
+      console.error("Failed to update candidate application:", err);
+      toast.error(err?.message || "Failed to update candidate application.");
+    } finally {
+      setIsSavingCandidate(false);
     }
   };
 
@@ -1548,6 +1694,14 @@ export default function EduAdminPage() {
                                 View
                               </button>
                               <button
+                                onClick={() => handleOpenEditCandidate(app)}
+                                className="rounded-md bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                title="Edit candidate details, documents (Resume/Aadhaar/Marks Card), and trade"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                                Edit
+                              </button>
+                              <button
                                 onClick={() => handleStatusChange(app.id, "Shortlisted")}
                                 className="rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer"
                                 title="Shortlist candidate"
@@ -2217,7 +2371,7 @@ export default function EduAdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">Gender Eligibility</label>
                   <select
                     value={newJobData.gender}
-                    onChange={(e) => setNewJobData({ ...newJobData, gender: e.target.value })}
+                    onChange={(e) => setNewJobData({ ...newJobData, gender: e.target.value as any })}
                     className="w-full rounded border border-slate-200 p-2 text-xs focus:border-orange-500 focus:outline-none bg-white cursor-pointer"
                   >
                     <option value="Male & Female">Male & Female</option>
@@ -2243,7 +2397,7 @@ export default function EduAdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">Meals / Food</label>
                   <select
                     value={newJobData.food}
-                    onChange={(e) => setNewJobData({ ...newJobData, food: e.target.value })}
+                    onChange={(e) => setNewJobData({ ...newJobData, food: e.target.value as any })}
                     className="w-full rounded border border-slate-200 p-1.5 text-xs bg-white cursor-pointer"
                   >
                     <option value="Free">Free Meals</option>
@@ -2255,7 +2409,7 @@ export default function EduAdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">Stay / Hostel</label>
                   <select
                     value={newJobData.accommodation}
-                    onChange={(e) => setNewJobData({ ...newJobData, accommodation: e.target.value })}
+                    onChange={(e) => setNewJobData({ ...newJobData, accommodation: e.target.value as any })}
                     className="w-full rounded border border-slate-200 p-1.5 text-xs bg-white cursor-pointer"
                   >
                     <option value="Free">Free Stay</option>
@@ -2267,7 +2421,7 @@ export default function EduAdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">Transport</label>
                   <select
                     value={newJobData.transport}
-                    onChange={(e) => setNewJobData({ ...newJobData, transport: e.target.value })}
+                    onChange={(e) => setNewJobData({ ...newJobData, transport: e.target.value as any })}
                     className="w-full rounded border border-slate-200 p-1.5 text-xs bg-white cursor-pointer"
                   >
                     <option value="Free">Free Transport</option>
@@ -2371,6 +2525,27 @@ export default function EduAdminPage() {
                     onClick={() => window.print()}
                     className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                     title="Print Candidate Summary"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditCandidate(viewingApp)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 py-1.5 text-xs transition-colors cursor-pointer shadow-2xs mr-0.5"
+                    title="Edit Candidate Information & Documents"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    Edit Details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditCandidate(viewingApp)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 py-1.5 text-xs transition-colors cursor-pointer shadow-2xs mr-0.5"
+                    title="Edit Candidate Information & Documents"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    Edit Details
+                  </button>
                   >
                     <Printer className="h-4 w-4" />
                   </button>
@@ -2830,7 +3005,7 @@ export default function EduAdminPage() {
                       {/* Image Preview Thumbnail if available */}
                       {viewingApp.additional_doc_url && isImageDoc(viewingApp.additional_doc_url) ? (
                         <div
-                          onClick={() => setPreviewDocUrl(viewingApp.additional_doc_url)}
+                          onClick={() => setPreviewDocUrl(viewingApp.additional_doc_url || null)}
                           className="relative group h-32 rounded-lg border border-slate-200 bg-white overflow-hidden mb-3 cursor-pointer flex items-center justify-center shadow-2xs"
                           title="Click to view full image"
                         >
@@ -2924,6 +3099,522 @@ export default function EduAdminPage() {
           </div>
         </div>
       )}
+      {/* EDIT CANDIDATE APPLICATION MODAL */}
+      {editingApp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-3 sm:p-5 backdrop-blur-xs overflow-y-auto"
+          data-lenis-prevent
+        >
+          <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl my-6 border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-orange-950 text-white p-5 flex items-center justify-between border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500 font-bold text-white shadow-md shrink-0">
+                  <Edit className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    Edit Candidate Application
+                  </h3>
+                  <div className="text-xs text-slate-300 flex items-center gap-2 mt-0.5">
+                    <span>Candidate: <strong className="text-white">{editingApp.name}</strong></span>
+                    <span>•</span>
+                    <span className="font-mono text-[11px] text-orange-400">ID: {editingApp.id.slice(0, 8)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingApp(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                title="Close Edit"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <form onSubmit={handleSaveCandidateEdit} className="max-h-[calc(85vh-130px)] overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-slate-800">
+              {/* SECTION 1: Personal & Contact Information */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
+                  <Users className="h-3.5 w-3.5 text-orange-500" /> 1. Personal & Contact Details
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Full Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={candidateEditForm.name}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, name: e.target.value })}
+                      placeholder="Candidate full name"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Mobile Phone (10 digits) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      value={candidateEditForm.contact}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, contact: e.target.value })}
+                      placeholder="10-digit mobile number"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={candidateEditForm.email}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, email: e.target.value })}
+                      placeholder="email@example.com"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Gender</label>
+                      <select
+                        value={candidateEditForm.gender}
+                        onChange={(e) => setCandidateEditForm({ ...candidateEditForm, gender: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none cursor-pointer"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Date of Birth</label>
+                      <input
+                        type="date"
+                        value={candidateEditForm.dob}
+                        onChange={(e) => setCandidateEditForm({ ...candidateEditForm, dob: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Residential / Permanent Address <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      required
+                      value={candidateEditForm.address}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, address: e.target.value })}
+                      placeholder="Complete village/town, taluk, district, PIN code"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: Applied Recruitment Drive & Preferred Location */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
+                  <Briefcase className="h-3.5 w-3.5 text-blue-500" /> 2. Applied Recruitment Drive & Target Company
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Company / Hiring Drive <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={candidateEditForm.job_company}
+                      onChange={(e) => {
+                        const selectedCompany = e.target.value;
+                        const matchedJob = jobs.find((j) => j.company === selectedCompany);
+                        setCandidateEditForm({
+                          ...candidateEditForm,
+                          job_company: selectedCompany,
+                          job_id: matchedJob?.id || candidateEditForm.job_id,
+                          job_role: matchedJob?.roleTitle || candidateEditForm.job_role,
+                        });
+                      }}
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none cursor-pointer"
+                    >
+                      {jobs.map((j) => (
+                        <option key={j.id} value={j.company}>
+                          {j.company} ({j.roleTitle || j.trade})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Assigned Role Title</label>
+                    <input
+                      type="text"
+                      value={candidateEditForm.job_role}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, job_role: e.target.value })}
+                      placeholder="e.g. Mobile Assembly Specialist"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-700 mb-1">Preferred Location</label>
+                    <input
+                      type="text"
+                      value={candidateEditForm.preferred_location}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, preferred_location: e.target.value })}
+                      placeholder="e.g. Devanahalli / Bangalore / Tumkur"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: Academic & Technical Qualification */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
+                  <GraduationCap className="h-3.5 w-3.5 text-purple-500" /> 3. Academic & Technical Qualification
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Highest Qualification <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={candidateEditForm.qualification}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, qualification: e.target.value })}
+                      placeholder="e.g. SSLC, PUC, ITI, Diploma, Degree, BE"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Trade / Specialization</label>
+                    <input
+                      type="text"
+                      value={candidateEditForm.trade}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, trade: e.target.value })}
+                      placeholder="e.g. Fitter, Electrician, B.Com, Any Trade"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 4: Documents & Verifications (Resume, Marks Card, Aadhaar / Additional ID) */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-emerald-600" /> 4. Candidate Documents (Resume, Marks Card & Aadhaar)
+                  </h4>
+                  <span className="text-[10px] text-slate-500">Max file size 2MB per document</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                  {/* DOC 1: RESUME */}
+                  <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2.5 flex flex-col justify-between shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-slate-900 flex items-center gap-1">
+                          <FileText className="h-3.5 w-3.5 text-blue-600" /> Resume / CV
+                        </span>
+                        {candidateEditForm.resume_url ? (
+                          <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold">
+                            Attached
+                          </span>
+                        ) : (
+                          <span className="rounded bg-slate-100 text-slate-500 px-1.5 py-0.5 text-[10px] font-semibold">
+                            None
+                          </span>
+                        )}
+                      </div>
+
+                      {candidateEditForm.resume_url ? (
+                        <div className="mt-2 flex items-center justify-between text-[11px] bg-slate-50 p-1.5 rounded border border-slate-200">
+                          <a
+                            href={candidateEditForm.resume_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 font-semibold hover:underline flex items-center gap-1 truncate max-w-[120px]"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" /> View Current
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCandidateEditForm({ ...candidateEditForm, resume_url: null });
+                              setCandidateFiles({ ...candidateFiles, resumeFile: null });
+                              toast.info("Resume marked for removal upon saving.");
+                            }}
+                            className="text-rose-600 hover:text-rose-800 text-[10px] font-bold cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-[10.5px] text-slate-400 italic">No resume attached</p>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                        Replace / Upload New Resume:
+                      </label>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              toast.error("Resume file size must be under 2MB.");
+                              return;
+                            }
+                            setCandidateFiles({ ...candidateFiles, resumeFile: file });
+                            toast.success(`Selected resume: ${file.name}`);
+                          }
+                        }}
+                        className="block w-full text-[10.5px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10.5px] file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                      />
+                      {candidateFiles.resumeFile && (
+                        <span className="block mt-1 text-[10px] font-bold text-emerald-600 truncate">
+                          ✓ New: {candidateFiles.resumeFile.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* DOC 2: MARKS CARD */}
+                  <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2.5 flex flex-col justify-between shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-slate-900 flex items-center gap-1">
+                          <GraduationCap className="h-3.5 w-3.5 text-emerald-600" /> Marks Card
+                        </span>
+                        {candidateEditForm.marks_card_url ? (
+                          <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold">
+                            Attached
+                          </span>
+                        ) : (
+                          <span className="rounded bg-slate-100 text-slate-500 px-1.5 py-0.5 text-[10px] font-semibold">
+                            None
+                          </span>
+                        )}
+                      </div>
+
+                      {candidateEditForm.marks_card_url ? (
+                        <div className="mt-2 flex items-center justify-between text-[11px] bg-slate-50 p-1.5 rounded border border-slate-200">
+                          <a
+                            href={candidateEditForm.marks_card_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-600 font-semibold hover:underline flex items-center gap-1 truncate max-w-[120px]"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" /> View Current
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCandidateEditForm({ ...candidateEditForm, marks_card_url: null });
+                              setCandidateFiles({ ...candidateFiles, marksCardFile: null });
+                              toast.info("Marks card marked for removal upon saving.");
+                            }}
+                            className="text-rose-600 hover:text-rose-800 text-[10px] font-bold cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-[10.5px] text-slate-400 italic">No marks card attached</p>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                        Replace / Upload New Marks Card:
+                      </label>
+                      <input
+                        type="file"
+                        accept=".pdf,image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              toast.error("Marks card file size must be under 2MB.");
+                              return;
+                            }
+                            setCandidateFiles({ ...candidateFiles, marksCardFile: file });
+                            toast.success(`Selected marks card: ${file.name}`);
+                          }
+                        }}
+                        className="block w-full text-[10.5px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10.5px] file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
+                      />
+                      {candidateFiles.marksCardFile && (
+                        <span className="block mt-1 text-[10px] font-bold text-emerald-600 truncate">
+                          ✓ New: {candidateFiles.marksCardFile.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* DOC 3: AADHAAR CARD / ADDITIONAL DOC */}
+                  <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2.5 flex flex-col justify-between shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-slate-900 flex items-center gap-1">
+                          <Paperclip className="h-3.5 w-3.5 text-purple-600" /> Aadhaar / ID Proof
+                        </span>
+                        {candidateEditForm.additional_doc_url ? (
+                          <span className="rounded bg-purple-100 text-purple-800 px-1.5 py-0.5 text-[10px] font-bold">
+                            Attached
+                          </span>
+                        ) : (
+                          <span className="rounded bg-slate-100 text-slate-500 px-1.5 py-0.5 text-[10px] font-semibold">
+                            None
+                          </span>
+                        )}
+                      </div>
+
+                      {candidateEditForm.additional_doc_url ? (
+                        <div className="mt-2 flex items-center justify-between text-[11px] bg-slate-50 p-1.5 rounded border border-slate-200">
+                          <a
+                            href={candidateEditForm.additional_doc_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-purple-600 font-semibold hover:underline flex items-center gap-1 truncate max-w-[120px]"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" /> View Current
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCandidateEditForm({ ...candidateEditForm, additional_doc_url: null });
+                              setCandidateFiles({ ...candidateFiles, additionalDocFile: null });
+                              toast.info("Aadhaar / ID proof marked for removal upon saving.");
+                            }}
+                            className="text-rose-600 hover:text-rose-800 text-[10px] font-bold cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-[10.5px] text-slate-400 italic">No Aadhaar / ID attached</p>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                        Replace / Upload New Aadhaar:
+                      </label>
+                      <input
+                        type="file"
+                        accept=".pdf,image/*,.doc,.docx"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              toast.error("Aadhaar / document file size must be under 2MB.");
+                              return;
+                            }
+                            setCandidateFiles({ ...candidateFiles, additionalDocFile: file });
+                            toast.success(`Selected Aadhaar / doc: ${file.name}`);
+                          }
+                        }}
+                        className="block w-full text-[10.5px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10.5px] file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 cursor-pointer"
+                      />
+                      {candidateFiles.additionalDocFile && (
+                        <span className="block mt-1 text-[10px] font-bold text-emerald-600 truncate">
+                          ✓ New: {candidateFiles.additionalDocFile.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 5: Decision Status & Internal Private Notes */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
+                  <ShieldCheck className="h-3.5 w-3.5 text-amber-500" /> 5. Recruitment Decision & Staff Notes
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Current Status</label>
+                    <select
+                      value={candidateEditForm.status}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, status: e.target.value as any })}
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Shortlisted">Shortlisted</option>
+                      <option value="Contacted">Contacted</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Internal Recruitment Notes (Private for Staff)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={candidateEditForm.notes}
+                      onChange={(e) => setCandidateEditForm({ ...candidateEditForm, notes: e.target.value })}
+                      placeholder="e.g. Verified Aadhaar and ITI marks card; ready to join on Monday."
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons in Modal Footer */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-slate-500">
+                  All changes immediately sync with Supabase and local recruitment storage.
+                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setEditingApp(null)}
+                    disabled={isSavingCandidate}
+                    className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingCandidate}
+                    className="rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold px-4 py-1.5 text-xs shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingCandidate ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                    Save Candidate Changes
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
 
       {/* DOCUMENT HIGH-RES LIGHTBOX PREVIEW MODAL */}
       {previewDocUrl && (

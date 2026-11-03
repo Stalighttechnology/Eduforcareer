@@ -658,6 +658,118 @@ export async function updateApplicationStatus(id: string, newStatus: StoredJobAp
 }
 
 /**
+ * Update candidate application details & documents
+ */
+export interface UpdateCandidateApplicationData {
+  job_id?: string;
+  job_company?: string;
+  job_role?: string;
+  name?: string;
+  email?: string | null;
+  contact?: string;
+  dob?: string | null;
+  gender?: string | null;
+  address?: string;
+  qualification?: string;
+  trade?: string | null;
+  preferred_location?: string | null;
+  resume_url?: string | null;
+  marks_card_url?: string | null;
+  additional_doc_url?: string | null;
+  status?: StoredJobApplication["status"];
+  notes?: string | null;
+}
+
+export interface CandidateDocumentFiles {
+  resumeFile?: File | null;
+  marksCardFile?: File | null;
+  additionalDocFile?: File | null;
+}
+
+/**
+ * Full update of candidate application details and documents (Resume, Marks Card, Aadhaar/ID)
+ */
+export async function updateJobApplication(
+  id: string,
+  updates: UpdateCandidateApplicationData,
+  files?: CandidateDocumentFiles
+): Promise<StoredJobApplication> {
+  const applicantName = updates.name?.trim() || "candidate";
+  const finalPayload: Record<string, any> = { ...updates };
+
+  // 1. Upload replacement Resume if provided
+  if (files?.resumeFile) {
+    const newResumeUrl = await uploadDocument(files.resumeFile, "resumes", applicantName);
+    if (newResumeUrl) {
+      finalPayload.resume_url = newResumeUrl;
+    }
+  }
+
+  // 2. Upload replacement Marks Card if provided
+  if (files?.marksCardFile) {
+    const newMarksCardUrl = await uploadDocument(files.marksCardFile, "markscards", applicantName);
+    if (newMarksCardUrl) {
+      finalPayload.marks_card_url = newMarksCardUrl;
+    }
+  }
+
+  // 3. Upload replacement Additional Document / Aadhaar Card if provided
+  if (files?.additionalDocFile) {
+    const newAddlDocUrl = await uploadDocument(files.additionalDocFile, "documents", applicantName);
+    if (newAddlDocUrl) {
+      finalPayload.additional_doc_url = newAddlDocUrl;
+    }
+  }
+
+  let updatedRecord: StoredJobApplication | null = null;
+
+  // Attempt Supabase update
+  try {
+    const { data, error } = await supabase
+      .from("job_applications")
+      .update(finalPayload)
+      .eq("id", id)
+      .select();
+
+    if (!error && data && data.length > 0) {
+      updatedRecord = data[0] as StoredJobApplication;
+    } else if (error) {
+      console.warn("Supabase updateJobApplication encountered error:", error.message);
+    }
+  } catch (err) {
+    console.warn("Failed to update candidate application on Supabase, syncing local storage:", err);
+  }
+
+  // Sync with local storage fallback
+  try {
+    const localApps: StoredJobApplication[] = JSON.parse(localStorage.getItem("local_job_applications") || "[]");
+    const index = localApps.findIndex((a) => a.id === id);
+    if (index !== -1) {
+      localApps[index] = {
+        ...localApps[index],
+        ...finalPayload,
+      };
+      if (!updatedRecord) {
+        updatedRecord = localApps[index];
+      }
+      localStorage.setItem("local_job_applications", JSON.stringify(localApps));
+    }
+  } catch (e) {
+    console.error("Local storage sync error in updateJobApplication:", e);
+  }
+
+  if (!updatedRecord) {
+    updatedRecord = {
+      id,
+      created_at: new Date().toISOString(),
+      ...finalPayload,
+    } as StoredJobApplication;
+  }
+
+  return updatedRecord;
+}
+
+/**
  * Delete a candidate application by ID
  */
 export async function deleteApplication(id: string): Promise<boolean> {
