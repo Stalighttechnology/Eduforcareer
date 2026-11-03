@@ -2539,18 +2539,6 @@ export default function EduAdminPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleOpenEditCandidate(viewingApp)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 py-1.5 text-xs transition-colors cursor-pointer shadow-2xs mr-0.5"
-                    title="Edit Candidate Information & Documents"
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                    Edit Details
-                  </button>
-                  >
-                    <Printer className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => handleDeleteApplication(viewingApp)}
                     className="rounded-lg p-2 text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors cursor-pointer"
                     title="Delete Application"
